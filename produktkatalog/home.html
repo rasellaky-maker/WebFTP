@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clients herunterladen</title>
+<style>
+body{
+    background:#0f172a;
+    color:white;
+    font-family:Arial,sans-serif;
+    text-align:center;
+    padding:50px;
+}
+.cards{
+    display:flex;
+    justify-content:center;
+    gap:30px;
+    flex-wrap:wrap;
+}
+.card{
+    width:250px;
+    background:#1e293b;
+    border-radius:15px;
+    padding:20px;
+    box-shadow:0 0 15px rgba(0,0,0,0.3);
+}
+.icon{
+    width:70px;
+    height:70px;
+    margin-bottom:15px;
+}
+.btn{
+    display:inline-block;
+    margin-top:15px;
+    padding:12px 25px;
+    background:#2563eb;
+    color:white;
+    text-decoration:none;
+    border-radius:8px;
+}
+.btn:hover{
+    background:#1d4ed8;
+}
+</style>
+</head>
+<body>
+<h1>Programme herunterladen</h1>
+<div class="cards">
+    <div class="card">
+        <img src="icons/winforms.png" class="icon" alt="WinForms Icon">
+        <h2>Windows Forms</h2>
+        <p>Grafische Anwendung mit Fenstern.</p>
+        <a href="https://github.com/rasellaky-maker/WebFTP/releases/download/v1.0.0/productkatalog_Setup_1.0.0.exe" download class="btn">Herunterladen</a>
+    </div>
+    <div class="card">
+        <img src="icons/console.png" class="icon" alt="Console Icon">
+        <h2>Konsole</h2>
+        <p>Konsolenanwendung.</p>
+        <a href="Console.exe" download class="btn">Herunterladen</a>
+    </div>
+</div>
+</body>
+</html>
