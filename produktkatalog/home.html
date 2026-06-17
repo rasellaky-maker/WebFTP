@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Скачать клиенты</title>
+
+<style>
+body{
+    background:#0f172a;
+    color:white;
+    font-family:Arial,sans-serif;
+    text-align:center;
+    padding:50px;
+}
+
+.cards{
+    display:flex;
+    justify-content:center;
+    gap:30px;
+    flex-wrap:wrap;
+}
+
+.card{
+    width:250px;
+    background:#1e293b;
+    border-radius:15px;
+    padding:20px;
+    box-shadow:0 0 15px rgba(0,0,0,0.3);
+}
+
+.icon{
+    width:70px;
+    height:70px;
+    margin-bottom:15px;
+}
+
+.btn{
+    display:inline-block;
+    margin-top:15px;
+    padding:12px 25px;
+    background:#2563eb;
+    color:white;
+    text-decoration:none;
+    border-radius:8px;
+}
+
+.btn:hover{
+    background:#1d4ed8;
+}
+</style>
+</head>
+<body>
+
+<h1>Скачать программы</h1>
+
+<div class="cards">
+
+    <!-- Windows Forms -->
+    <div class="card">
+        <img src="icons/winforms.png" class="icon" alt="WinForms Icon">
+        <h2>Windows Forms</h2>
+        <p>Графическое приложение с окнами.</p>
+        <a href="download/productkatalog_Setup_1.0.0.zip" download class="btn">Скачать</a>
+    </div>
+
+    <!-- Console -->
+    <div class="card">
+        <img src="icons/console.png" class="icon" alt="Console Icon">
+        <h2>Console</h2>
+        <p>Консольное приложение.</p>
+        <a href="Console.exe" download class="btn">Скачать</a>
+    </div>
+
+</div>
+
+</body>
+</html>
