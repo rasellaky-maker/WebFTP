@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Attendance Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style/home.css">
+    <link rel="icon" href="image/free-icon-open-book.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+    <div class="loader-screen" id="loader">
+        <div class="loader-circle"></div>
+        <h2>School Attendance Manager</h2>
+        <p>Loading...</p>
+        <div class="loader-bar">
+            <span></span>
+        </div>
+    </div>
+
+    <div class="container" id="mainContent">
+        <nav>
+            <div class="logo">School Attendance Manager</div>
+            <div class="menu">
+                <a href="#about">About</a>
+                <a href="#features">Features</a>
+                <a href="#download">Download</a>
+                <a href="#why">Why</a>
+            </div>
+        </nav>
+
+        <section class="hero" id="about">
+            <div class="hero-content">
+                <span class="badge">Attendance tracking made simple</span>
+                <h1>Manage student presence quickly, clearly, and without stress.</h1>
+                <p>School Attendance Manager helps teachers and class supervisors record attendance, review history, and stay organized with a polished and efficient workflow.</p>
+                <div class="buttons">
+                    <a href="#download" class="btn btn-primary">⬇ Download client</a>
+                    <a href="#features" class="btn btn-secondary">🔍 Explore features</a>
+                </div>
+
+                <div class="stats">
+                    <div>
+                        <strong>2</strong>
+                        <span>versions</span>
+                    </div>
+                    <div>
+                        <strong>100%</strong>
+                        <span>focus on speed</span>
+                    </div>
+                    <div>
+                        <strong>24/7</strong>
+                        <span>daily use</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-card">
+                <div class="hero-icon"><i class="fa-solid fa-compass"></i></div>
+                <h3>Choose the version that fits your routine</h3>
+                <ul>
+                    <li>Console client for rapid command-line actions</li>
+                    <li>WinForms client with a polished interface</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="features" id="features">
+            <div class="section-heading">
+                <span class="eyebrow">What the client can do</span>
+                <h2>Everything you need for smooth attendance management</h2>
+            </div>
+            <div class="info">
+                <div class="card">
+                    <div class="card-icon"><i class="fa-solid fa-check-to-slot"></i></div>
+                    <h3>Mark attendance fast</h3>
+                    <p>Record presence and absence with a clean, efficient flow.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon"><i class="fa-solid fa-users"></i></div>
+                    <h3>Manage student lists</h3>
+                    <p>Keep student data organized and easy to review at any moment.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                    <h3>Keep attendance history</h3>
+                    <p>Save records and quickly find past entries whenever needed.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="workflow-section">
+            <div class="workflow-card">
+                <div class="section-heading">
+                    <span class="eyebrow">How it works</span>
+                    <h2>A simple process from start to finish</h2>
+                </div>
+                <div class="steps">
+                    <div class="step">
+                        <span>01</span>
+                        <h3>Open the client</h3>
+                        <p>Launch the version you need and get started in seconds.</p>
+                    </div>
+                    <div class="step">
+                        <span>02</span>
+                        <h3>Record attendance</h3>
+                        <p>Mark participants quickly and keep your records up to date.</p>
+                    </div>
+                    <div class="step">
+                        <span>03</span>
+                        <h3>Save and review</h3>
+                        <p>Store history and revisit past entries whenever needed.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="download-section" id="download">
+            <div class="section-heading">
+                <span class="eyebrow">Download</span>
+                <h2>Pick the version that fits your routine</h2>
+            </div>
+            <div class="info">
+                <div class="card download-card">
+                    <div class="card-icon">
+                        <img src="image/console.png" alt="Console client">
+                    </div>
+                    <h3>Console client</h3>
+                    <p>Perfect for fast actions and command-line workflows.</p>
+                    <a href="#download" class="btn btn-primary">Download</a>
+                </div>
+
+                <div class="card download-card">
+                    <div class="card-icon">
+                        <img src="image/window.png" alt="WinForms client">
+                    </div>
+                    <h3>WinForms client</h3>
+                    <p>More comfortable for day-to-day use with a friendly interface.</p>
+                    <a href="#download" class="btn btn-primary">Download</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="why-section" id="why">
+            <div class="card wide-card">
+                <div class="section-heading left">
+                    <span class="eyebrow">Why it is useful</span>
+                    <h2>Less manual work, better organization, faster results</h2>
+                </div>
+                <p>It helps simplify the attendance tracking process, reduce repetitive effort, and store information in a clear and structured form. This client is especially useful for teachers, class supervisors, and anyone who wants to handle attendance with confidence and ease.</p>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>School Attendance Manager • Built for practical daily use</p>
+    </footer>
+
+    <script>
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('loader');
+            const mainContent = document.getElementById('mainContent');
+
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                mainContent.classList.add('visible');
+            }, 2200);
+        });
+    </script>
+</body>
+</html>
