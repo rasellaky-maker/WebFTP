@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Repressionen</title>
+  <link rel="icon" type="image/png" href="../img/icons/ico.png">
+  <link rel="apple-touch-icon" href="../img/icons/ico.png">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/repression.css">
+  <link rel="stylesheet" href="../css/mainstale.css">
+  <link rel="stylesheet" href="../css/load.css">
+</head>
+
+<body>
+<div id="loader">
+  <div class="pacman"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <span>Loading...</span>
+</div>
+
+<input type="checkbox" id="menu-checkbox" />
+<label for="menu-checkbox" class="menu-toggle">
+  <span></span>
+  <span></span>
+  <span></span>
+</label>
+
+<nav class="sidebar">
+  <a href="../main.html">Home</a>
+  <a href="../html/produkt.html">Produkte</a>
+  <a href="../html/pacman.html">PacMan</a>
+  <a href="../html/repressionen.html">Repressionen</a>
+</nav>
+  
+<label for="menu-checkbox" class="overlay"></label>
+
+<div class="content">
+  <h1>Repressionen</h1>
+  <h2>Kommentar</h2>
+
+  <form id="comment-form">
+    <input type="text" id="username" placeholder="Nickname" required>
+    <textarea id="comment-text" placeholder="Kommentar..." required></textarea>
+    <button type="submit">Senden</button>
+  </form>
+
+  <div id="comments-list"></div>
+</div>
+
+<footer>
+  <a href="../html/impressum.html"><u>Impressum</u></a>
+  <a href="../html/faq.html"><u>FAQ</u></a>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyB_pBxQo_lU3hr6Qv1jCnGkVhp7Y9sBQ54",
+  authDomain: "commentsproject-8df2a.firebaseapp.com",
+  databaseURL: "https://commentsproject-8df2a-default-rtdb.firebaseio.com/",
+  projectId: "commentsproject-8df2a",
+  storageBucket: "commentsproject-8df2a.firebasestorage.app",
+  messagingSenderId: "806243404184",
+  appId: "1:806243404184:web:0091de4b6bdba2690483ed",
+  measurementId: "G-CZXPJ2Y60K"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const COOLDOWN_KEY = "lastCommentTime";
+const COOLDOWN_DURATION = 10 * 60 * 1000; 
+
+const form = document.getElementById("comment-form");
+const commentsList = document.getElementById("comments-list");
+
+function renderComment(id, username, text){
+  const div = document.createElement("div");
+  div.className = "comment";
+  div.innerHTML = `
+    <span class="author">@${username}</span>
+    <div class="text">${text}</div>
+  `;
+  commentsList.appendChild(div);
+}
+
+db.ref('comments').on('child_added', snapshot => {
+  const data = snapshot.val();
+  renderComment(snapshot.key, data.username, data.text);
+});
+
+form.addEventListener('submit', e => {
+  e.preventDefault();
+
+  const username = document.getElementById("username").value.trim();
+  const text = document.getElementById("comment-text").value.trim();
+  const now = Date.now();
+
+  if(!username || !text) return;
+
+  const lastTime = localStorage.getItem(COOLDOWN_KEY);
+  if(lastTime && now - lastTime < COOLDOWN_DURATION){
+    const minutes = Math.ceil((COOLDOWN_DURATION - (now - lastTime)) / 60000);
+    alert(`Warten sie bitte noch ${minutes} Minuten vor dem Commentar`);
+    return;
+  }
+
+  if(text.length < 3 || text.length > 300){
+    alert("Der Kommentar ist zu klein / gross");
+    return;
+  }
+
+  db.ref('comments').push({ username, text })
+    .then(() => {
+      form.reset();
+      localStorage.setItem(COOLDOWN_KEY, now);
+    })
+    .catch(err => alert("Fehler beim Kommentar absendung: " + err.message));
+});
+
+
+window.addEventListener("load", () => {
+  const loader = document.getElementById("loader");
+  setTimeout(() => {
+    loader.style.transition = "opacity 0.5s ease";
+    loader.style.opacity = "0";
+    setTimeout(() => { loader.style.display = "none"; }, 500);
+  }, 800);
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,39 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.content {
+    flex: 1;
+    padding: 20px;
+}
+
+footer {
+    text-align: center;
+    padding: 10px 0;
+    background: #0b0033;
+    color: #00f0ff;
+}
+
+.content h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.faq-item {
+    background: rgba(0,0,0,0.7);
+    padding: 15px 20px;
+    margin: 10px 0;
+    border-radius: 12px;
+    color: #d7d7d7;
+    font-size: 12px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.faq-item b {
+    color: #03d863;
+}
