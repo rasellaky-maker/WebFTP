@@ -1,0 +1,69 @@
+/* Farben an einer Stelle festlegen */
+:root {
+  --dunkel: #1d2f3a;
+  --hell: #f4f6f7;
+  --akzent: #e8903a;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  line-height: 1.6;
+  background-color: var(--hell);
+  color: var(--dunkel);
+}
+
+header {
+  background-color: var(--dunkel);
+  color: var(--hell);
+  padding: 2.5rem 1.5rem;
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2.4rem;
+}
+
+#motto {
+  color: var(--akzent);
+  font-size: 1.2rem;
+  font-style: italic;
+}
+
+main {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem;
+}
+
+section {
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  background-color: white;
+  border-left: 5px solid var(--akzent);
+  border-radius: 6px;
+}
+
+h2 {
+  margin-top: 0;
+}
+
+button {
+  font: inherit;
+  padding: 0.5rem 1rem;
+  background-color: var(--dunkel);
+  color: var(--hell);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: var(--akzent);
+}
+
+footer {
+  padding: 1rem 1.5rem;
+  text-align: center;
+  color: #5b6b74;
+}
