@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PacMan</title>
+
+  <link rel="icon" type="image/png" href="../img/icons/ico.png">
+  <link rel="apple-touch-icon" href="../img/icons/ico.png">
+
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/mainstale.css">
+  <link rel="stylesheet" href="../css/load.css">
+</head>
+<body>
+
+  <div id="loader">
+    <div class="pacman"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <span>Loading...</span>
+  </div>
+
+  <input type="checkbox" id="menu-checkbox" />
+  <label for="menu-checkbox" class="menu-toggle">
+    <span></span>
+    <span></span>
+    <span></span>
+  </label>
+
+  <nav class="sidebar">
+    <a href="../main.html">Home</a>
+    <a href="../html/produkt.html">Produkte</a>
+    <a href="../html/pacman.html">PacMan</a>
+    <a href="../html/repressionen.html">Repressionen</a>
+  </nav>
+
+  <label for="menu-checkbox" class="overlay"></label>
+
+  <div class="content">
+    <h1>PacMan</h1>
+    <h4>
+      <p>CHASE THE ENERGY,</p>
+      <p>NOT THE GHOST!</p>
+    </h4>
+
+    <div class="ghosts">
+      <span class="ghost red">👻</span>
+      <span class="ghost pink">👻</span>
+      <span class="ghost cyan">👻</span>
+      <span class="ghost orange">👻</span>
+    </div>
+
+    <div class="pacman-info">
+      <h2>Original Pac-Man</h2>
+
+      <p>
+        <span class="icon red">👻</span>
+        <b>Pac-Man</b> ist eine echte Ikone der Arcade-Spiele, die 1980 erstmals in Japan erschien und sofort die Herzen von Millionen Spielern weltweit eroberte. Die gelbe Spielfigur mit offenem Mund bewegt sich durch ein Labyrinth, sammelt Punkte und weicht den bunten Geistern aus.
+      </p>
+
+      <p>
+        Jeder Geist hat seinen eigenen Charakter:  
+        <span class="icon red">👻</span> <b>Blinky (rot)</b> — der Jäger, folgt dir immer;<br>
+        <span class="icon pink">👻</span> <b>Pinky (pink)</b> — schlau, versucht deinen Weg vorherzusehen;<br>
+        <span class="icon cyan">👻</span> <b>Inky (cyan)</b> — unvorhersehbar und strategisch klug;<br>
+        <span class="icon orange">👻</span> <b>Clyde (orange)</b> — faul und zufällig, manchmal läuft er vor dir weg.
+      </p>
+
+      <p>
+        Das Ziel des Spiels ist einfach: alle Punkte im Labyrinth zu essen. Doch mit jedem Level werden die Geister schneller und intelligenter. Es gibt <b>Energiekugeln</b>, die Pac-Man die Möglichkeit geben, die Geister für kurze Zeit zu fressen — ein strategischer Moment des Erfolgs!
+      </p>
+
+      <p>
+        Pac-Man ist nicht nur ein Spiel, sondern ein kulturelles Phänomen. Filme, Serien, Musik und Merchandise wurden inspiriert von dieser Legende. Der Slogan <b>„CHASE THE ENERGY, NOT THE GHOST!"</b> zeigt den Geist des Spiels: Bewege dich vorwärts, weiche Gefahren aus und verfolge dein Ziel.
+      </p>
+
+      <p>
+        Besuche die <a href="https://www.pacman.com" target="_blank" rel="noopener noreferrer">offizielle Pac-Man-Website</a>, um mehr über die Geschichte des Spiels, klassische Versionen und moderne Adaptionen zu erfahren.
+      </p>
+    </div>
+
+    <img src="../img/icons/gamePacMan.png" alt="PacMan" class="pacman-img">
+
+    <br><br>
+    <a href="https://www.pacman.com" target="_blank" rel="noopener noreferrer" class="pacman-link">
+      Originale Website von PacMan
+    </a>
+  </div>
+
+  <footer>
+    <a href="../html/impressum.html"><u>Impressum</u></a>
+    <a href="../html/faq.html"><u>FAQ</u></a>
+  </footer>
+
+  <script>
+    window.addEventListener("load", () => {
+      const loader = document.getElementById("loader");
+      setTimeout(() => {
+        loader.style.transition = "opacity 0.5s ease";
+        loader.style.opacity = "0";
+        setTimeout(() => {
+          loader.style.display = "none";
+        }, 500);
+      }, 300);
+    });
+  </script>
+
+</body>
+</html>
