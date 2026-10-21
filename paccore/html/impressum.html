@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Impressum</title>
+
+<link rel="icon" type="image/png" href="../img/icons/ico.png">
+<link rel="apple-touch-icon" href="../img/icons/ico.png">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/mainstale.css">
+<link rel="stylesheet" href="../css/load.css">
+<link rel="stylesheet" href="../css/impressum.css">
+</head>
+<body>
+
+<div id="loader">
+    <div class="pacman"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <span>Loading...</span>
+</div>
+
+<input type="checkbox" id="menu-checkbox">
+<label for="menu-checkbox" class="menu-toggle">
+    <span></span>
+    <span></span>
+    <span></span>
+</label>
+
+<nav class="sidebar">
+    <a href="../main.html">Home</a>
+    <a href="../html/produkt.html">Produkte</a>
+    <a href="../html/pacman.html">PacMan</a>
+    <a href="../html/repressionen.html">Repressionen</a>
+</nav>
+
+<label for="menu-checkbox" class="overlay"></label>
+
+<div class="content">
+    <h1 class="page-title">Impressum</h1>
+
+    <div class="impressum-card">
+    <h3>Angaben gemäß Schulprojekt (fiktiv)</h3>
+
+    <div class="impressum-section">
+        <h4>Vertreter</h4>
+        <p>
+            Nora Endruweit<br>
+            Oleg Karlov<br>
+            <span class="muted">(Projektgruppe „Paccore“)</span>
+        </p>
+    </div>
+
+    <div class="impressum-section">
+        <h4>Kontakt</h4>
+        <p>
+            <a href="mailto:okarlov@bhakwien10.at"><u>okarlov@bhakwien10.at</u></a><br>
+            <a href="mailto:nendruweit@bhakwien10.at"><u>nendruweit@bhakwien10.at</u></a>
+        </p>
+    </div>
+</div>
+</div>
+
+<footer>
+    <a href="../html/impressum.html"><u>Impressum</u></a>
+    <a href="../html/faq.html"><u>FAQ</u></a>
+</footer>
+
+
+<script>
+window.addEventListener("load", () => {
+const loader = document.getElementById("loader");
+setTimeout(() => {
+    loader.style.transition = "opacity 0.5s ease";
+    loader.style.opacity = "0";
+    setTimeout(() => {
+    loader.style.display = "none";
+    }, 500);
+}, 300);
+});
+</script>
+
+</body>
+</html>

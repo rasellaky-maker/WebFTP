@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Home | Chase the Energy</title>
+
+<link rel="icon" type="image/png" href="img/icons/ico.png">
+<link rel="apple-touch-icon" href="img/icons/ico.png">
+
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/mainstale.css">
+<link rel="stylesheet" href="css/load.css">
+</head>
+<body>
+
+<div id="loader">
+  <div class="pacman"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <span>Loading...</span>
+</div>
+
+<input type="checkbox" id="menu-checkbox" />
+
+<label for="menu-checkbox" class="menu-toggle">
+  <span></span>
+  <span></span>
+  <span></span>
+</label>
+
+<nav class="sidebar">
+  <a href="#">Home</a>
+  <a href="html/produkt.html">Produkte</a>
+  <a href="html/pacman.html">PacMan</a>
+  <a href="html/repressionen.html">Repressionen</a>
+</nav>
+
+<label for="menu-checkbox" class="overlay"></label>
+
+<div class="content">
+  <h1>PacCore</h1>
+  <h4 style="color: #fff;">
+    <p>CHASE THE ENERGY,</p>
+    <p>NOT THE GHOST!</p>
+  </h4>
+  <img src="img/foto/produktnullbackground.png" alt="" class="foto">
+  <br>
+  <p class="content-text" style="text-align:center;">
+    Ein Energydrink, inspiriert von der Ästhetik klassischer Videospiele wie Pac-Man. Er richtet sich an junge, aktive Menschen, die in der digitalen Welt leben und Wert auf Stil, Geschmack und Wachheit legen.
+  </p>
+  <br>
+  <a href="html/produkt.html" class="under-link"><u>Mehr erfahren...</u></a>
+</div>
+
+<footer>
+  <a href="html/impressum.html"><u>Impressum</u></a>
+  <a href="html/faq.html"><u>FAQ</u></a>
+</footer>
+
+<script>
+  window.addEventListener("load", () => {
+    const loader = document.getElementById("loader");
+    setTimeout(() => {
+      loader.style.transition = "opacity 0.5s ease";
+      loader.style.opacity = "0";
+      setTimeout(() => {
+        loader.style.display = "none";
+      }, 500);
+    }, 2000);
+  });
+</script>
+
+</body>
+</html>

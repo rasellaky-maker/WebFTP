@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FAQ</title>
+
+<link rel="icon" type="image/png" href="../img/icons/ico.png">
+<link rel="apple-touch-icon" href="../img/icons/ico.png">
+
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/mainstale.css">
+<link rel="stylesheet" href="../css/load.css">
+<link rel="stylesheet" href="../css/faq.css">
+</head>
+<body>
+
+<div id="loader">
+  <div class="pacman"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <span>Loading...</span>
+</div>
+
+<input type="checkbox" id="menu-checkbox" />
+<label for="menu-checkbox" class="menu-toggle">
+  <span></span>
+  <span></span>
+  <span></span>
+</label>
+
+<nav class="sidebar">
+  <a href="../main.html">Home</a>
+  <a href="../html/produkt.html">Produkte</a>
+  <a href="../html/pacman.html">PacMan</a>
+  <a href="../html/repressionen.html">Repressionen</a>
+</nav>
+
+<label for="menu-checkbox" class="overlay"></label>
+
+<div class="content">
+  <h1>FAQ</h1>
+
+  <div class="faq-item">
+    <b>❓ Für wen ist PACCORE geeignet?</b>
+    <p>PACCORE ist für Jugendliche und junge Erwachsene gedacht, die einen Energiekick für Konzentration, Gaming oder lange Tage brauchen.</p>
+  </div>
+
+  <div class="faq-item">
+    <b>❓ Enthält PACCORE Koffein?</b>
+    <p>Ja, PACCORE enthält Koffein, um Fokus und Wachheit zu unterstützen. Die Menge ist vergleichbar mit anderen Energy Drinks.</p>
+  </div>
+
+  <div class="faq-item">
+    <b>❓ Wo kann man PACCORE kaufen?</b>
+    <p>PACCORE ist aktuell ein Schulprojekt und noch nicht im Handel erhältlich.</p>
+  </div>
+
+</div>
+
+<footer>
+  <a href="../html/impressum.html"><u>Impressum</u></a>
+  <a href="#"><u>FAQ</u></a></u>
+</footer>
+
+<script>
+window.addEventListener("load", () => {
+  const loader = document.getElementById("loader");
+  setTimeout(() => {
+    loader.style.transition = "opacity 0.5s ease";
+    loader.style.opacity = "0";
+    setTimeout(() => {
+      loader.style.display = "none";
+    }, 500);
+  }, 300);
+});
+</script>
+
+</body>
+</html>
