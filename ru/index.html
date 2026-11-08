@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080b10">
+  <title>StockPilot — рынок под контролем</title>
+  <meta name="description" content="StockPilot — удобный обзор цифровых активов.">
+  <link rel="stylesheet" href="../styles/style.css">
+  <noscript><style>.page-loader{display:none}</style></noscript>
+  <script src="../scripts/loader.js"></script>
+  <script src="../scripts/main.js" defer></script>
+</head>
+<body>
+  <div class="page-loader" id="pageLoader" role="status" aria-live="polite">
+    <div class="loader-mark"><span class="loader-orbit"></span><span class="loader-orbit loader-orbit-two"></span><span class="loader-logo">S</span></div>
+    <div class="loader-word">Stock<span class="brand-accent">Pilot</span></div>
+    <div class="loader-bar" aria-hidden="true"></div>
+    <span class="sr-only">Загрузка…</span>
+  </div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#top" aria-label="StockPilot — главная"><span class="brand-mark">S</span><span>Stock<span class="brand-accent">Pilot</span></span></a>
+      <nav class="main-nav" aria-label="Основная навигация">
+        <a href="#market">Рынок</a><a href="#advantages">Возможности</a><a href="#start">Начать</a>
+      <a href="comments.html">Комментарии</a></nav>
+      <div class="header-actions"><a class="header-comments" href="comments.html" aria-label="Комментарии" title="Комментарии"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></a>
+        <a class="header-button header-download" href="download.html">Скачать клиент <span>↓</span></a>
+        <nav class="lang-switch" aria-label="Язык">
+          <a href="../index.html" hreflang="en" lang="en" title="English">EN</a>
+          <a href="../de/index.html" hreflang="de" lang="de" title="Deutsch">DE</a>
+          <a href="index.html" hreflang="ru" lang="ru" title="Русский" aria-current="true">RU</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-content">
+          <div class="eyebrow"><span class="status-dot"></span>ТВОЙ ОБЗОР ФИНАНСОВОГО РЫНКА</div>
+          <h1>Рынок меняется.<span>Будь на шаг впереди.</span></h1>
+          <p class="hero-description">Следи за цифровыми активами, изучай цены и находи интересующие тебя монеты в одном удобном интерфейсе.</p>
+          <div class="hero-actions"><a class="button button-primary" href="#market">Исследовать рынок <span>↘</span></a><a class="button button-secondary" href="#advantages">Узнать больше</a></div>
+          <div class="hero-footnote"><span class="status-dot"></span>Данные активов загружаются автоматически</div>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="hero-glow"></div>
+          <div class="hero-center"><span class="hero-center-symbol">S</span></div>
+          <div class="floating-card floating-card-top"><span class="floating-icon">↗</span><div><span class="floating-label">Твой следующий шаг</span><strong>Начни с обзора</strong></div></div>
+          <div class="floating-card floating-card-bottom"><span class="floating-small-dot"></span><div><span class="floating-label">StockPilot</span><strong>Рынок в одном месте</strong></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="market-section" id="market">
+      <div class="container">
+        <div class="section-heading market-heading">
+          <div><div class="section-kicker">01 / ОБЗОР РЫНКА</div><h2>Изучай активы</h2><p class="section-description">Смотри информацию о монетах и находи нужные активы.</p></div>
+          <div class="market-badge"><span class="status-dot"></span>Обзор рынка</div>
+        </div>
+        <form class="search-form" id="searchForm" role="search">
+          <label class="search-box" for="searchInput"><span class="search-icon" aria-hidden="true">⌕</span><input id="searchInput" type="search" name="coin" placeholder="Поиск по названию или символу..." autocomplete="off" maxlength="100"><button class="clear-search" id="clearSearch" type="button" aria-label="Очистить поиск" hidden>×</button></label>
+          <button class="button button-primary search-button" type="submit">Найти</button>
+        </form>
+        <div class="market-toolbar"><span class="market-caption">ЦИФРОВЫЕ АКТИВЫ</span><span class="market-count" id="coinCount">Загружаем активы…</span></div>
+        <div class="coin-grid" id="coins" aria-live="polite" aria-busy="true"></div>
+        <div class="status-message" id="status" role="status" aria-live="polite">Загружаем данные…</div>
+        <div class="market-disclaimer">Информация представлена для ознакомления и не является инвестиционной рекомендацией.</div>
+      </div>
+    </section>
+
+    <section class="advantages-section" id="advantages">
+      <div class="container">
+        <div class="section-heading"><div><div class="section-kicker">02 / ВОЗМОЖНОСТИ</div><h2>Твой путь начинается здесь</h2><p class="section-description">Всё необходимое, чтобы удобнее ориентироваться на рынке.</p></div></div>
+        <div class="feature-grid">
+          <article class="feature-card"><div class="feature-number">01</div><div class="feature-icon">◎</div><h3>Открой для себя рынок</h3><p>Просматривай цифровые активы, их изображения, стоимость и основную информацию.</p><a href="#market" class="text-link">Перейти к активам <span>↗</span></a></article>
+          <article class="feature-card"><div class="feature-number">02</div><div class="feature-icon">⌕</div><h3>Находи нужные монеты</h3><p>Используй поиск по названию или символу, чтобы быстрее находить интересующие активы.</p><a href="#market" class="text-link">Попробовать поиск <span>↗</span></a></article>
+          <article class="feature-card"><div class="feature-number">03</div><div class="feature-icon">↗</div><h3>Следи за информацией</h3><p>Изучай доступные данные и используй их как отправную точку для собственного анализа рынка.</p><a href="#market" class="text-link">Изучить активы <span>↗</span></a></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="start-section" id="start">
+      <div class="container"><div class="start-panel"><div class="start-content"><div class="section-kicker">03 / ТВОЙ СЛЕДУЮЩИЙ ШАГ</div><h2>Начни с простого обзора.</h2><p>Выбери интересующие активы, изучи доступную информацию и сформируй собственное представление о рынке.</p><div class="start-actions"><a class="button button-primary" href="#market">Смотреть активы <span>↗</span></a><a class="button button-secondary" href="download.html">Скачать клиент <span>↓</span></a></div></div><div class="start-decoration" aria-hidden="true"><div class="start-ring"></div><div class="start-symbol">S</div><span class="start-star star-one">✳</span><span class="start-star star-two">✳</span></div></div></div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-inner"><a class="brand footer-brand" href="#top"><span class="brand-mark">S</span><span>Stock<span class="brand-accent">Pilot</span></span></a><p>© <span id="currentYear"></span> StockPilot. Обзор цифровых активов.</p><div class="footer-links"><a class="footer-link" href="download.html">Скачать клиент ↓</a><a class="footer-link" href="comments.html">Комментарии ↗</a><a class="footer-link" href="#market">К рынку ↑</a></div></div></footer>
+</body>
+</html>

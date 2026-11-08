@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080b10">
+  <meta name="description" content="StockPilot — Комментарии — community comments.">
+  <title>StockPilot — Комментарии</title>
+  <link rel="stylesheet" href="../styles/style.css">
+  <script type="module" src="../scripts/comments.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="index.html" aria-label="StockPilot"><span class="brand-mark">S</span><span>Stock<span class="brand-accent">Pilot</span></span></a>
+      <nav class="main-nav" aria-label="Navigation"><a href="index.html">Главная</a><a href="download.html">Скачать клиент</a></nav>
+      <div class="header-actions"><a class="header-button" href="index.html">К рынку <span>↗</span></a></div>
+    </div>
+  </header>
+  <main class="comments-main">
+    <div class="container">
+      <section class="comments-hero">
+        <div class="section-kicker">04 / СООБЩЕСТВО</div>
+        <h1>Твоё мнение <span>важно.</span></h1>
+        <p>Поделись мыслями, задай вопрос или оставь отзыв. Новые комментарии появляются здесь автоматически.</p>
+      </section>
+      <div class="comments-layout">
+        <section class="comments-panel">
+          <h2>Оставить комментарий</h2><p class="comments-subtitle">Твоё сообщение станет доступно всем посетителям этой страницы.</p>
+          <form id="commentForm">
+            <label class="comment-field"><span>Твоё имя</span><input id="commentName" name="name" maxlength="40" minlength="2" required autocomplete="name" placeholder="Например, Алекс"></label>
+            <label class="comment-field"><span>Сообщение</span><textarea id="commentMessage" name="message" maxlength="1000" minlength="2" required placeholder="Напиши свой комментарий..."></textarea></label>
+            <button class="button button-primary comment-submit" id="commentSubmit" type="submit">Опубликовать <span>↗</span></button>
+            <p class="comment-note">Не публикуй личную или конфиденциальную информацию.</p>
+            <p class="comment-status" id="commentStatus" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+        <section class="comments-list-panel">
+          <div class="comments-list-head"><h2>Сообщения сообщества</h2><span class="comments-total" id="commentsTotal">0</span></div>
+          <div class="comments-list" id="commentsList"><div class="comments-loading">Загружаем комментарии…</div></div>
+        </section>
+      </div>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="container footer-inner"><a class="brand footer-brand" href="index.html"><span class="brand-mark">S</span><span>Stock<span class="brand-accent">Pilot</span></span></a><p>© <span id="currentYear"></span> StockPilot.</p><div class="footer-links"><a class="footer-link" href="index.html">Главная ↑</a></div></div></footer>
+  <script>document.getElementById('currentYear').textContent = new Date().getFullYear();</script>
+</body>
+</html>
