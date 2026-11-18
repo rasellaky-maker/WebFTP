@@ -4,7 +4,7 @@
 // STOCKPILOT — НАСТРОЙКИ
 // ======================================================
 
-const API_BASE = "https://sep-webapi-4b7c.onrender.com";
+const API_BASE = "https://stockpilott.runasp.net";
 const COINS_LIMIT = 12;
 
 // Как часто тихо обновлять данные (миллисекунды).
