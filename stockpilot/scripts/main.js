@@ -5,7 +5,7 @@
 // STOCKPILOT — НАСТРОЙКИ
 // ======================================================
 
-const API_BASE = "http://stockpilott.runasp.net";
+const API_BASE = "https://stockpilott.runasp.net";
 const COINS_LIMIT = 12;
 
 // Автоматическое обновление данных.
