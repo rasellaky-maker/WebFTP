@@ -1,3 +1,4 @@
+
 "use strict";
 
 // ======================================================
@@ -7,15 +8,17 @@
 const API_BASE = "https://stockpilott.runasp.net";
 const COINS_LIMIT = 12;
 
-// Как часто тихо обновлять данные (миллисекунды).
-const REFRESH_INTERVAL_MS = 3000;
+// Автоматическое обновление данных.
+const REFRESH_INTERVAL_MS = 10000;
 
-// Через сколько миллисекунд после последнего введённого символа
-// запускается поиск (чтобы не отправлять запрос на каждую букву).
+// Максимальное время ожидания ответа API.
+const API_TIMEOUT_MS = 30000;
+
+// Задержка поиска после последнего символа.
 const SEARCH_DEBOUNCE_MS = 300;
 
 // ======================================================
-// ЯЗЫК СТРАНИЦЫ (en / de / ru) — берётся из <html lang="...">
+// ЯЗЫК СТРАНИЦЫ
 // ======================================================
 
 const I18N = {
@@ -47,8 +50,12 @@ const I18N = {
     searchResults: count => `Search results: ${count}.`,
     unavailable: "Data temporarily unavailable",
     loadFailedLater: "Could not load data. Please try again later.",
-    r1h: "1 h", r24h: "24 h", r7d: "7 d", r30d: "30 d"
+    r1h: "1 h",
+    r24h: "24 h",
+    r7d: "7 d",
+    r30d: "30 d"
   },
+
   de: {
     locale: "de-AT",
     noPrice: "Preis nicht angegeben",
@@ -77,8 +84,12 @@ const I18N = {
     searchResults: count => `Suchergebnisse: ${count}.`,
     unavailable: "Daten vorübergehend nicht verfügbar",
     loadFailedLater: "Daten konnten nicht geladen werden. Bitte versuche es später erneut.",
-    r1h: "1 Std", r24h: "24 Std", r7d: "7 T", r30d: "30 T"
+    r1h: "1 Std",
+    r24h: "24 Std",
+    r7d: "7 T",
+    r30d: "30 T"
   },
+
   ru: {
     locale: "ru-RU",
     noPrice: "Цена не указана",
@@ -107,11 +118,17 @@ const I18N = {
     searchResults: count => `Результаты поиска: ${count}.`,
     unavailable: "Данные временно недоступны",
     loadFailedLater: "Не удалось загрузить данные. Попробуй немного позже.",
-    r1h: "1 ч", r24h: "24 ч", r7d: "7 дн", r30d: "30 дн"
+    r1h: "1 ч",
+    r24h: "24 ч",
+    r7d: "7 дн",
+    r30d: "30 дн"
   }
 };
 
-const LANG = (document.documentElement.lang || "en").slice(0, 2).toLowerCase();
+const LANG = (document.documentElement.lang || "en")
+  .slice(0, 2)
+  .toLowerCase();
+
 const L = I18N[LANG] || I18N.en;
 const LOCALE = L.locale;
 
@@ -129,13 +146,31 @@ const clearSearchButton = document.getElementById("clearSearch");
 
 const currentYearEl = document.getElementById("currentYear");
 
+// ======================================================
+// СОСТОЯНИЕ
+// ======================================================
+
 let requestCounter = 0;
 
-// Состояние автообновления.
 let refreshTimer = null;
+let searchTimer = null;
+
 let isManualLoading = false;
 let lastSignature = null;
 let activeQuery = "";
+
+let isComposing = false;
+
+let expandedKey = null;
+let selectedRange = "1h";
+let panelCounter = 0;
+
+const cardRegistry = new Map();
+let renderedKeys = [];
+
+// ======================================================
+// ФОРМАТИРОВАНИЕ
+// ======================================================
 
 const euroFormatter = new Intl.NumberFormat(LOCALE, {
   style: "currency",
@@ -145,6 +180,36 @@ const euroFormatter = new Intl.NumberFormat(LOCALE, {
 
 const numberFormatter = new Intl.NumberFormat(LOCALE, {
   maximumFractionDigits: 0
+});
+
+const percentFormatter = new Intl.NumberFormat(LOCALE, {
+  style: "percent",
+  signDisplay: "always",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+const VIENNA_TZ = "Europe/Vienna";
+
+const timeFormatter = new Intl.DateTimeFormat(LOCALE, {
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: VIENNA_TZ
+});
+
+const dateFormatter = new Intl.DateTimeFormat(LOCALE, {
+  day: "2-digit",
+  month: "2-digit",
+  timeZone: VIENNA_TZ
+});
+
+const fullTimeFormatter = new Intl.DateTimeFormat(LOCALE, {
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  timeZone: VIENNA_TZ
 });
 
 // ======================================================
@@ -188,8 +253,6 @@ function safeText(value, fallback = "") {
   return result || fallback;
 }
 
-// Получение данных независимо от регистра названий полей.
-// Поддерживаются, например, Name и name, Image и image.
 function getField(object, names) {
   if (!object || typeof object !== "object") {
     return undefined;
@@ -225,10 +288,6 @@ function getField(object, names) {
   return undefined;
 }
 
-// ======================================================
-// ФОРМАТИРОВАНИЕ
-// ======================================================
-
 function formatPrice(value) {
   if (value === null || value === undefined || value === "") {
     return L.noPrice;
@@ -258,29 +317,46 @@ function formatBuyers(value) {
 }
 
 // ======================================================
-// API
+// API — УЛУЧШЕННАЯ ЗАГРУЗКА
 // ======================================================
 
-async function getJson(path) {
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: "GET",
-    // Не брать ответ из кэша браузера: иначе повторные запросы
-    // могут возвращать старые данные.
-    cache: "no-store",
-    headers: {
-      Accept: "application/json"
+async function getJson(path, timeoutMs = API_TIMEOUT_MS) {
+  const controller = new AbortController();
+
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json"
+      },
+      signal: controller.signal
+    });
+
+    if (response.status === 404 || response.status === 204) {
+      return [];
     }
-  });
 
-  if (response.status === 404 || response.status === 204) {
-    return [];
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error("API request timeout");
+    }
+
+    throw error;
+
+  } finally {
+    clearTimeout(timeout);
   }
-
-  if (!response.ok) {
-    throw new Error(L.loadFailed);
-  }
-
-  return response.json();
 }
 
 function normalizeCoins(data) {
@@ -338,8 +414,6 @@ function getCoinSymbol(coin) {
     return safeText(symbol, "").toUpperCase();
   }
 
-  // В текущей таблице MySQL отдельного поля Symbol нет.
-  // Поэтому для известных монет определяем символ по названию.
   const name = getCoinName(coin)
     .toLowerCase()
     .replace(/[\s._-]/g, "");
@@ -366,10 +440,7 @@ function getCoinSymbol(coin) {
 }
 
 function getCoinPrice(coin) {
-  return getField(coin, [
-    "value",
-    "price"
-  ]);
+  return getField(coin, ["value", "price"]);
 }
 
 function getCoinBuyers(coin) {
@@ -379,12 +450,22 @@ function getCoinBuyers(coin) {
   ]);
 }
 
+function getCoinId(coin) {
+  return getField(coin, ["id", "coinId"]);
+}
+
+function getCoinKey(coin) {
+  const id = getCoinId(coin);
+
+  return String(
+    id !== undefined ? id : getCoinName(coin)
+  );
+}
+
 // ======================================================
-// ИЗОБРАЖЕНИЯ ИЗ MYSQL
+// ИЗОБРАЖЕНИЯ
 // ======================================================
 
-// MySQL возвращает изображение через поле Image.
-// Значение может быть Base64, Data URL или обычным URL.
 function getCoinImage(coin) {
   const image = getField(coin, [
     "image",
@@ -404,7 +485,6 @@ function getCoinImage(coin) {
     return image.trim() || null;
   }
 
-  // Дополнительная поддержка, если API возвращает объект.
   if (image && typeof image === "object") {
     const nestedImage = getField(image, [
       "url",
@@ -414,7 +494,10 @@ function getCoinImage(coin) {
       "base64"
     ]);
 
-    if (typeof nestedImage === "string" && nestedImage.trim()) {
+    if (
+      typeof nestedImage === "string" &&
+      nestedImage.trim()
+    ) {
       return nestedImage.trim();
     }
   }
@@ -422,49 +505,45 @@ function getCoinImage(coin) {
   return null;
 }
 
-// Определяем тип изображения и преобразуем Base64 в Data URL.
 function getImageCandidates(imagePath) {
-  if (typeof imagePath !== "string" || !imagePath.trim()) {
+  if (
+    typeof imagePath !== "string" ||
+    !imagePath.trim()
+  ) {
     return [];
   }
 
   const source = imagePath.trim();
 
-  // Если Data URL уже готов, используем его напрямую.
   if (/^data:image\//i.test(source)) {
     return [source];
   }
 
-  // Убираем пробелы и переводы строк внутри Base64.
   const cleaned = source.replace(/\s/g, "");
 
-  // JPEG Base64 обычно начинается с /9j/.
   if (cleaned.startsWith("/9j/")) {
     return [`data:image/jpeg;base64,${cleaned}`];
   }
 
-  // PNG.
   if (cleaned.startsWith("iVBORw0KGgo")) {
     return [`data:image/png;base64,${cleaned}`];
   }
 
-  // GIF.
   if (cleaned.startsWith("R0lGOD")) {
     return [`data:image/gif;base64,${cleaned}`];
   }
 
-  // WebP.
   if (cleaned.startsWith("UklGR")) {
     return [`data:image/webp;base64,${cleaned}`];
   }
 
-  // SVG: "<?xml" в Base64 начинается с PD94,
-  // "<svg" — с PHN2Zy.
-  if (cleaned.startsWith("PD94") || cleaned.startsWith("PHN2Zy")) {
+  if (
+    cleaned.startsWith("PD94") ||
+    cleaned.startsWith("PHN2Zy")
+  ) {
     return [`data:image/svg+xml;base64,${cleaned}`];
   }
 
-  // Если это другая длинная строка Base64 — пробуем как JPEG.
   if (
     cleaned.length > 100 &&
     /^[A-Za-z0-9+/=]+$/.test(cleaned)
@@ -472,7 +551,6 @@ function getImageCandidates(imagePath) {
     return [`data:image/jpeg;base64,${cleaned}`];
   }
 
-  // Обычная абсолютная ссылка.
   try {
     const absoluteUrl = new URL(source);
 
@@ -485,21 +563,22 @@ function getImageCandidates(imagePath) {
 
     return [];
   } catch {
-    // Это может быть относительный путь.
+    // Пробуем относительный путь.
   }
 
-  // Относительные пути: сначала исходное значение,
-  // затем адрес, разрешённый относительно API.
   const candidates = [source];
 
   try {
-    const apiUrl = new URL(source, `${API_BASE}/`).href;
+    const apiUrl = new URL(
+      source,
+      `${API_BASE}/`
+    ).href;
 
     if (!candidates.includes(apiUrl)) {
       candidates.push(apiUrl);
     }
   } catch {
-    // Некорректный путь пропускаем.
+    // Некорректный путь.
   }
 
   return candidates;
@@ -509,20 +588,25 @@ function getImageCandidates(imagePath) {
 // СОЗДАНИЕ ИЗОБРАЖЕНИЯ
 // ======================================================
 
-function createCoinImage(imagePath, fallbackText, extraClass = "") {
+function createCoinImage(
+  imagePath,
+  fallbackText,
+  extraClass = ""
+) {
   const wrapper = document.createElement("div");
 
   wrapper.className = extraClass
     ? `coin-image-wrap ${extraClass}`
     : "coin-image-wrap";
 
-  // Запасной вариант, когда картинка отсутствует.
   const fallback = document.createElement("span");
 
   fallback.className = "coin-fallback";
 
   fallback.textContent =
-    safeText(fallbackText, "?").charAt(0).toUpperCase() || "?";
+    safeText(fallbackText, "?")
+      .charAt(0)
+      .toUpperCase() || "?";
 
   wrapper.appendChild(fallback);
 
@@ -542,8 +626,6 @@ function createCoinImage(imagePath, fallbackText, extraClass = "") {
   image.alt = "";
   image.decoding = "async";
 
-  // loading="lazy" для data: URL не нужен и может задерживать
-  // показ картинки, поэтому включаем его только для обычных ссылок.
   if (!candidates[0].startsWith("data:")) {
     image.loading = "lazy";
   }
@@ -551,8 +633,6 @@ function createCoinImage(imagePath, fallbackText, extraClass = "") {
   let candidateIndex = 0;
 
   image.addEventListener("load", () => {
-    // style.display надёжнее, чем hidden: работает,
-    // даже если в CSS у .coin-fallback задан display.
     fallback.style.display = "none";
   });
 
@@ -578,7 +658,12 @@ function createCoinImage(imagePath, fallbackText, extraClass = "") {
 // БЛОК ЦЕНЫ
 // ======================================================
 
-function createPriceArea(coin, imagePath, symbol, name) {
+function createPriceArea(
+  coin,
+  imagePath,
+  symbol,
+  name
+) {
   const priceArea = document.createElement("div");
   priceArea.className = "coin-price-area";
 
@@ -590,11 +675,12 @@ function createPriceArea(coin, imagePath, symbol, name) {
 
   const price = document.createElement("strong");
   price.className = "coin-price";
-  price.textContent = formatPrice(getCoinPrice(coin));
+  price.textContent = formatPrice(
+    getCoinPrice(coin)
+  );
 
   priceInfo.append(priceLabel, price);
 
-  // Изображение монеты вместо SVG-графика.
   const priceImage = createCoinImage(
     imagePath,
     symbol || name,
@@ -607,69 +693,28 @@ function createPriceArea(coin, imagePath, symbol, name) {
 }
 
 // ======================================================
-// ГРАФИК ИСТОРИИ ЦЕН — НАСТРОЙКИ
+// ГРАФИК — НАСТРОЙКИ
 // ======================================================
 
-// refreshMs — как часто обновлять открытый график для периода.
-// Длинные периоды обновляем реже: сервер считает их дороже.
 const HISTORY_RANGES = [
-  { key: "1h",  label: L.r1h,   refreshMs: 5000 },
-  { key: "24h", label: L.r24h,  refreshMs: 15000 },
-  { key: "7d",  label: L.r7d,  refreshMs: 60000 },
+  { key: "1h", label: L.r1h, refreshMs: 5000 },
+  { key: "24h", label: L.r24h, refreshMs: 15000 },
+  { key: "7d", label: L.r7d, refreshMs: 60000 },
   { key: "30d", label: L.r30d, refreshMs: 60000 }
 ];
 
 const DEFAULT_RANGE = "1h";
-const VIENNA_TZ = "Europe/Vienna";
-
-const timeFormatter = new Intl.DateTimeFormat(LOCALE, {
-  hour: "2-digit", minute: "2-digit", timeZone: VIENNA_TZ
-});
-
-const dateFormatter = new Intl.DateTimeFormat(LOCALE, {
-  day: "2-digit", month: "2-digit", timeZone: VIENNA_TZ
-});
-
-const fullTimeFormatter = new Intl.DateTimeFormat(LOCALE, {
-  day: "2-digit", month: "2-digit",
-  hour: "2-digit", minute: "2-digit", second: "2-digit",
-  timeZone: VIENNA_TZ
-});
-
-const percentFormatter = new Intl.NumberFormat(LOCALE, {
-  style: "percent",
-  signDisplay: "always",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2
-});
-
-// Состояние раскрытой карточки.
-let expandedKey = null;
-let selectedRange = DEFAULT_RANGE;
-let panelCounter = 0;
-
-// Все карточки на странице: ключ монеты -> объект карточки.
-const cardRegistry = new Map();
-let renderedKeys = [];
-
-// ======================================================
-// КАРТОЧКА МОНЕТЫ
-// ======================================================
-
-function getCoinId(coin) {
-  return getField(coin, ["id", "coinId"]);
-}
-
-function getCoinKey(coin) {
-  const id = getCoinId(coin);
-
-  return String(id !== undefined ? id : getCoinName(coin));
-}
 
 function prefersReducedMotion() {
   return window.matchMedia &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
 }
+
+// ======================================================
+// СОЗДАНИЕ КАРТОЧКИ
+// ======================================================
 
 function createCoinCard(coin, index) {
   const key = getCoinKey(coin);
@@ -680,19 +725,21 @@ function createCoinCard(coin, index) {
   const card = document.createElement("article");
   card.className = "coin-card";
 
-  // Кликабельная часть карточки.
   const summary = document.createElement("div");
+
   summary.className = "coin-summary";
   summary.tabIndex = 0;
   summary.setAttribute("role", "button");
   summary.setAttribute("aria-expanded", "false");
   summary.title = L.showChart;
 
-  // Верхняя часть.
   const top = document.createElement("div");
   top.className = "coin-card-top";
 
-  const icon = createCoinImage(imagePath, symbol || name);
+  const icon = createCoinImage(
+    imagePath,
+    symbol || name
+  );
 
   const heading = document.createElement("div");
   heading.className = "coin-heading";
@@ -721,7 +768,12 @@ function createCoinCard(coin, index) {
   const divider = document.createElement("div");
   divider.className = "coin-divider";
 
-  const priceArea = createPriceArea(coin, imagePath, symbol, name);
+  const priceArea = createPriceArea(
+    coin,
+    imagePath,
+    symbol,
+    name
+  );
 
   const buyers = document.createElement("div");
   buyers.className = "coin-buyers";
@@ -730,13 +782,19 @@ function createCoinCard(coin, index) {
   buyersLabel.textContent = L.buyers;
 
   const buyersValue = document.createElement("strong");
-  buyersValue.textContent = formatBuyers(getCoinBuyers(coin));
+  buyersValue.textContent = formatBuyers(
+    getCoinBuyers(coin)
+  );
 
   buyers.append(buyersLabel, buyersValue);
 
-  summary.append(top, divider, priceArea, buyers);
+  summary.append(
+    top,
+    divider,
+    priceArea,
+    buyers
+  );
 
-  // Раскрывающаяся часть с графиком (заполняется при первом открытии).
   const details = document.createElement("div");
   details.className = "coin-details";
 
@@ -758,17 +816,24 @@ function createCoinCard(coin, index) {
     symbolLabel,
     tag,
     priceEl: priceArea.querySelector(".coin-price"),
-    priceImage: priceArea.querySelector(".coin-price-image"),
+    priceImage: priceArea.querySelector(
+      ".coin-price-logo"
+    ),
     buyersValue,
     imagePath,
     price: Number(getCoinPrice(coin)),
     panel: null
   };
 
-  summary.addEventListener("click", () => toggleCoin(key));
+  summary.addEventListener("click", () => {
+    toggleCoin(key);
+  });
 
   summary.addEventListener("keydown", event => {
-    if (event.key === "Enter" || event.key === " ") {
+    if (
+      event.key === "Enter" ||
+      event.key === " "
+    ) {
       event.preventDefault();
       toggleCoin(key);
     }
@@ -777,42 +842,71 @@ function createCoinCard(coin, index) {
   return view;
 }
 
-// Обновляем уже существующую карточку на месте:
-// раскрытое состояние и график при этом не сбрасываются.
+// ======================================================
+// ОБНОВЛЕНИЕ КАРТОЧКИ
+// ======================================================
+
 function updateCoinCard(view, coin, index) {
   const name = getCoinName(coin);
   const symbol = getCoinSymbol(coin);
   const imagePath = getCoinImage(coin);
 
   view.title.textContent = name;
-  view.symbolLabel.textContent = symbol || L.digitalAsset;
+  view.symbolLabel.textContent =
+    symbol || L.digitalAsset;
+
   view.tag.textContent = `#${index + 1}`;
-  view.buyersValue.textContent = formatBuyers(getCoinBuyers(coin));
+
+  view.buyersValue.textContent = formatBuyers(
+    getCoinBuyers(coin)
+  );
 
   const rawPrice = getCoinPrice(coin);
   const price = Number(rawPrice);
 
   view.priceEl.textContent = formatPrice(rawPrice);
 
-  // Короткая подсветка цены при изменении.
-  if (Number.isFinite(price) && Number.isFinite(view.price) && price !== view.price) {
-    const cls = price > view.price ? "flash-up" : "flash-down";
+  if (
+    Number.isFinite(price) &&
+    Number.isFinite(view.price) &&
+    price !== view.price
+  ) {
+    const cls = price > view.price
+      ? "flash-up"
+      : "flash-down";
 
-    view.priceEl.classList.remove("flash-up", "flash-down");
-    void view.priceEl.offsetWidth; // перезапуск анимации
+    view.priceEl.classList.remove(
+      "flash-up",
+      "flash-down"
+    );
+
+    void view.priceEl.offsetWidth;
+
     view.priceEl.classList.add(cls);
   }
 
   view.price = price;
 
   if (imagePath !== view.imagePath) {
-    const newIcon = createCoinImage(imagePath, symbol || name);
+    const newIcon = createCoinImage(
+      imagePath,
+      symbol || name
+    );
+
     view.icon.replaceWith(newIcon);
     view.icon = newIcon;
 
-    const newPriceImage = createCoinImage(imagePath, symbol || name, "coin-price-image");
+    const newPriceImage = createCoinImage(
+      imagePath,
+      symbol || name,
+      "coin-price-image"
+    );
+
     view.priceImage.replaceWith(newPriceImage);
-    view.priceImage = newPriceImage;
+
+    view.priceImage = newPriceImage.querySelector(
+      ".coin-price-logo"
+    );
 
     view.imagePath = imagePath;
   }
@@ -827,15 +921,27 @@ function setExpanded(key, expanded) {
 
   if (!view) return;
 
-  view.card.classList.toggle("is-expanded", expanded);
-  view.summary.setAttribute("aria-expanded", String(expanded));
-  view.summary.title = expanded ? L.hideChart : L.showChart;
+  view.card.classList.toggle(
+    "is-expanded",
+    expanded
+  );
+
+  view.summary.setAttribute(
+    "aria-expanded",
+    String(expanded)
+  );
+
+  view.summary.title = expanded
+    ? L.hideChart
+    : L.showChart;
 
   if (!expanded) return;
 
   if (!view.panel) {
     view.panel = createHistoryPanel(view);
-    view.detailsInner.appendChild(view.panel.root);
+    view.detailsInner.appendChild(
+      view.panel.root
+    );
   }
 
   syncTabs(view.panel);
@@ -856,13 +962,14 @@ function toggleCoin(key) {
   expandedKey = key;
   setExpanded(key, true);
 
-  // Когда карточка раскроется — показываем её целиком.
   const view = cardRegistry.get(key);
 
   if (view) {
     setTimeout(() => {
       view.card.scrollIntoView({
-        behavior: prefersReducedMotion() ? "auto" : "smooth",
+        behavior: prefersReducedMotion()
+          ? "auto"
+          : "smooth",
         block: "nearest"
       });
     }, 320);
@@ -877,7 +984,9 @@ function collapseExpanded() {
   setExpanded(expandedKey, false);
   expandedKey = null;
 
-  if (view) view.summary.focus();
+  if (view) {
+    view.summary.focus();
+  }
 
   return true;
 }
@@ -890,7 +999,6 @@ function createHistoryPanel(view) {
   const root = document.createElement("div");
   root.className = "history";
 
-  // Шапка: изменение цены, мин/макс и выбор периода.
   const head = document.createElement("div");
   head.className = "history-head";
 
@@ -919,7 +1027,9 @@ function createHistoryPanel(view) {
     button.dataset.range = range.key;
     button.textContent = range.label;
 
-    button.addEventListener("click", () => setRange(range.key));
+    button.addEventListener("click", () => {
+      setRange(range.key);
+    });
 
     return button;
   });
@@ -927,7 +1037,6 @@ function createHistoryPanel(view) {
   tabs.append(...tabButtons);
   head.append(stats, tabs);
 
-  // Область графика.
   const chartEl = document.createElement("div");
   chartEl.className = "history-chart";
 
@@ -941,7 +1050,12 @@ function createHistoryPanel(view) {
   messageEl.className = "history-message";
   messageEl.setAttribute("role", "status");
 
-  chartEl.append(plotEl, tooltipEl, messageEl);
+  chartEl.append(
+    plotEl,
+    tooltipEl,
+    messageEl
+  );
+
   root.append(head, chartEl);
 
   const panel = {
@@ -964,10 +1078,16 @@ function createHistoryPanel(view) {
     drawnWidth: 0
   };
 
-  chartEl.addEventListener("pointermove", event => onChartHover(panel, event));
-  chartEl.addEventListener("pointerleave", () => hideHover(panel));
+  chartEl.addEventListener(
+    "pointermove",
+    event => onChartHover(panel, event)
+  );
 
-  // Перерисовываем график при изменении ширины.
+  chartEl.addEventListener(
+    "pointerleave",
+    () => hideHover(panel)
+  );
+
   if (typeof ResizeObserver !== "undefined") {
     new ResizeObserver(() => {
       if (
@@ -1002,6 +1122,10 @@ function setRange(key) {
 
   const panel = view.panel;
 
+  // Инвалидируем предыдущий запрос.
+  panel.requestToken++;
+  panel.loading = false;
+
   syncTabs(panel);
 
   panel.points = [];
@@ -1009,6 +1133,7 @@ function setRange(key) {
 
   clearPlot(panel);
   showMessage(panel, L.chartLoading);
+
   loadHistory(panel);
 }
 
@@ -1018,6 +1143,7 @@ function showMessage(panel, text, withRetry = false) {
 
   const label = document.createElement("span");
   label.textContent = text;
+
   panel.messageEl.appendChild(label);
 
   if (withRetry) {
@@ -1026,6 +1152,7 @@ function showMessage(panel, text, withRetry = false) {
     retry.type = "button";
     retry.className = "history-retry";
     retry.textContent = L.retry;
+
     retry.addEventListener("click", () => {
       showMessage(panel, L.chartLoading);
       loadHistory(panel);
@@ -1042,11 +1169,14 @@ function hideMessage(panel) {
 
 function clearPlot(panel) {
   panel.plotEl.replaceChildren();
+
   panel.changeEl.textContent = "";
   panel.minmaxEl.replaceChildren();
+
   panel.geom = null;
   panel.refs = null;
   panel.drawnWidth = 0;
+
   hideHover(panel);
 }
 
@@ -1055,16 +1185,31 @@ function clearPlot(panel) {
 // ======================================================
 
 function parseHistory(data) {
-  const list = Array.isArray(data) ? data : normalizeCoins(data);
+  const list = Array.isArray(data)
+    ? data
+    : normalizeCoins(data);
+
   const result = [];
 
   for (const item of list) {
-    if (!item || typeof item !== "object") continue;
+    if (!item || typeof item !== "object") {
+      continue;
+    }
 
-    const rawTime = getField(item, ["time", "recordedAt", "date", "timestamp"]);
-    const rawPrice = getField(item, ["price", "value"]);
+    const rawTime = getField(item, [
+      "time",
+      "recordedAt",
+      "date",
+      "timestamp"
+    ]);
+
+    const rawPrice = getField(item, [
+      "price",
+      "value"
+    ]);
 
     const value = Number(rawPrice);
+
     let time;
 
     if (typeof rawTime === "number") {
@@ -1072,16 +1217,24 @@ function parseHistory(data) {
     } else {
       let text = safeText(rawTime);
 
-      // Если сервер прислал время без часового пояса — это UTC.
-      if (text && !/(z|[+-]\d{2}:?\d{2})$/i.test(text)) {
+      if (
+        text &&
+        !/(z|[+-]\d{2}:?\d{2})$/i.test(text)
+      ) {
         text += "Z";
       }
 
       time = Date.parse(text);
     }
 
-    if (Number.isFinite(time) && Number.isFinite(value)) {
-      result.push({ t: time, v: value });
+    if (
+      Number.isFinite(time) &&
+      Number.isFinite(value)
+    ) {
+      result.push({
+        t: time,
+        v: value
+      });
     }
   }
 
@@ -1090,7 +1243,10 @@ function parseHistory(data) {
   return result;
 }
 
-async function loadHistory(panel, { silent = false } = {}) {
+async function loadHistory(
+  panel,
+  { silent = false } = {}
+) {
   const coinId = panel.view.coinId;
 
   if (coinId === undefined) {
@@ -1098,7 +1254,6 @@ async function loadHistory(panel, { silent = false } = {}) {
     return;
   }
 
-  // Фоновое обновление не накладываем на предыдущий запрос.
   if (silent && panel.loading) return;
 
   const token = ++panel.requestToken;
@@ -1115,21 +1270,33 @@ async function loadHistory(panel, { silent = false } = {}) {
       `/api/Coin/${encodeURIComponent(coinId)}/history?range=${encodeURIComponent(range)}`
     );
 
-    // Пока шёл запрос, пользователь мог сменить период или монету.
-    if (token !== panel.requestToken || range !== selectedRange) return;
+    if (
+      token !== panel.requestToken ||
+      range !== selectedRange
+    ) {
+      return;
+    }
 
     panel.points = parseHistory(data);
     panel.loadedAt = Date.now();
 
     renderPanel(panel);
+
   } catch {
     if (token !== panel.requestToken) return;
 
-    // При сбое фонового обновления оставляем прежний график.
-    if (silent && panel.points.length > 0) return;
+    if (silent && panel.points.length > 0) {
+      return;
+    }
 
     clearPlot(panel);
-    showMessage(panel, L.chartLoadFailed, true);
+
+    showMessage(
+      panel,
+      L.chartLoadFailed,
+      true
+    );
+
   } finally {
     if (token === panel.requestToken) {
       panel.loading = false;
@@ -1137,7 +1304,6 @@ async function loadHistory(panel, { silent = false } = {}) {
   }
 }
 
-// Вызывается по таймеру автообновления.
 function refreshOpenChart() {
   if (expandedKey === null) return;
 
@@ -1145,25 +1311,36 @@ function refreshOpenChart() {
 
   if (!view || !view.panel) return;
 
-  const config = HISTORY_RANGES.find(range => range.key === selectedRange);
-  const interval = config ? config.refreshMs : 15000;
+  const config = HISTORY_RANGES.find(
+    range => range.key === selectedRange
+  );
 
-  if (Date.now() - view.panel.loadedAt >= interval) {
-    loadHistory(view.panel, { silent: true });
+  const interval = config
+    ? config.refreshMs
+    : 15000;
+
+  if (
+    Date.now() - view.panel.loadedAt >= interval
+  ) {
+    loadHistory(view.panel, {
+      silent: true
+    });
   }
 }
 
 // ======================================================
-// ОТРИСОВКА ГРАФИКА (SVG)
+// ОТРИСОВКА ГРАФИКА
 // ======================================================
 
 function renderPanel(panel) {
   if (panel.points.length < 2) {
     clearPlot(panel);
+
     showMessage(
       panel,
       L.notEnoughData
     );
+
     return;
   }
 
@@ -1174,6 +1351,7 @@ function renderPanel(panel) {
 
 function updateStats(panel) {
   const points = panel.points;
+
   const first = points[0].v;
   const last = points[points.length - 1].v;
 
@@ -1186,7 +1364,11 @@ function updateStats(panel) {
   }
 
   panel.changeEl.textContent =
-    first !== 0 ? percentFormatter.format((last - first) / first) : "—";
+    first !== 0
+      ? percentFormatter.format(
+          (last - first) / first
+        )
+      : "—";
 
   const minStrong = document.createElement("strong");
   minStrong.textContent = formatPrice(min);
@@ -1202,7 +1384,6 @@ function updateStats(panel) {
   );
 }
 
-// Количество знаков на оси зависит от размаха значений.
 function formatAxisPrice(value, span) {
   let digits = 0;
 
@@ -1219,6 +1400,7 @@ function formatAxisPrice(value, span) {
 function drawChart(panel) {
   const width = panel.chartEl.clientWidth;
   const height = panel.chartEl.clientHeight || 240;
+
   const points = panel.points;
 
   if (!width || points.length < 2) return;
@@ -1232,11 +1414,19 @@ function drawChart(panel) {
     left: width < 420 ? 52 : 64
   };
 
-  const plotW = Math.max(width - margin.left - margin.right, 10);
-  const plotH = Math.max(height - margin.top - margin.bottom, 10);
+  const plotW = Math.max(
+    width - margin.left - margin.right,
+    10
+  );
+
+  const plotH = Math.max(
+    height - margin.top - margin.bottom,
+    10
+  );
 
   const t0 = points[0].t;
   const t1 = points[points.length - 1].t;
+
   const tSpan = Math.max(t1 - t0, 1);
 
   let min = Infinity;
@@ -1247,34 +1437,55 @@ function drawChart(panel) {
     if (point.v > max) max = point.v;
   }
 
-  // Небольшой отступ, чтобы линия не прилипала к краям.
   let pad = (max - min) * 0.08;
 
-  if (pad === 0) pad = Math.abs(max) * 0.01 || 1;
+  if (pad === 0) {
+    pad = Math.abs(max) * 0.01 || 1;
+  }
 
   const yLow = min - pad;
   const yHigh = max + pad;
 
-  const x = time => margin.left + ((time - t0) / tSpan) * plotW;
-  const y = value => margin.top + (1 - (value - yLow) / (yHigh - yLow)) * plotH;
+  const x = time =>
+    margin.left +
+    ((time - t0) / tSpan) * plotW;
 
-  const isUp = points[points.length - 1].v >= points[0].v;
-  panel.root.classList.toggle("is-down", !isUp);
+  const y = value =>
+    margin.top +
+    (
+      1 -
+      (value - yLow) / (yHigh - yLow)
+    ) * plotH;
+
+  const isUp =
+    points[points.length - 1].v >= points[0].v;
+
+  panel.root.classList.toggle(
+    "is-down",
+    !isUp
+  );
 
   const linePath = points
-    .map((point, i) => `${i ? "L" : "M"}${x(point.t).toFixed(1)},${y(point.v).toFixed(1)}`)
+    .map((point, i) =>
+      `${i ? "L" : "M"}${x(point.t).toFixed(1)},${y(point.v).toFixed(1)}`
+    )
     .join("");
 
   const bottom = margin.top + plotH;
-  const areaPath =
-    `${linePath}L${x(t1).toFixed(1)},${bottom}L${x(t0).toFixed(1)},${bottom}Z`;
 
-  // Горизонтальные линии сетки и подписи цен.
+  const areaPath =
+    `${linePath}L${x(t1).toFixed(1)},${bottom}` +
+    `L${x(t0).toFixed(1)},${bottom}Z`;
+
   let grid = "";
 
-  for (let i = 0; i < 4; i += 1) {
-    const value = yHigh - ((yHigh - yLow) * i) / 3;
-    const yy = (margin.top + (plotH * i) / 3).toFixed(1);
+  for (let i = 0; i < 4; i++) {
+    const value =
+      yHigh - ((yHigh - yLow) * i) / 3;
+
+    const yy = (
+      margin.top + (plotH * i) / 3
+    ).toFixed(1);
 
     grid +=
       `<line class="chart-grid" x1="${margin.left}" x2="${width - margin.right}" y1="${yy}" y2="${yy}"/>` +
@@ -1282,13 +1493,22 @@ function drawChart(panel) {
       `${formatAxisPrice(value, yHigh - yLow)}</text>`;
   }
 
-  // Подписи времени: для коротких периодов — часы, для длинных — даты.
-  const tickFormatter = tSpan <= 36 * 3600 * 1000 ? timeFormatter : dateFormatter;
+  const tickFormatter =
+    tSpan <= 36 * 3600 * 1000
+      ? timeFormatter
+      : dateFormatter;
+
   let ticks = "";
 
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < 5; i++) {
     const time = t0 + (tSpan * i) / 4;
-    const anchor = i === 0 ? "start" : i === 4 ? "end" : "middle";
+
+    const anchor =
+      i === 0
+        ? "start"
+        : i === 4
+          ? "end"
+          : "middle";
 
     ticks +=
       `<text class="chart-label" x="${x(time).toFixed(1)}" y="${height - 6}" text-anchor="${anchor}">` +
@@ -1312,14 +1532,28 @@ function drawChart(panel) {
     `</svg>`;
 
   panel.refs = {
-    cursor: panel.plotEl.querySelector(".chart-cursor"),
-    dot: panel.plotEl.querySelector(".chart-dot")
+    cursor: panel.plotEl.querySelector(
+      ".chart-cursor"
+    ),
+    dot: panel.plotEl.querySelector(
+      ".chart-dot"
+    )
   };
 
-  panel.geom = { margin, plotW, width, t0, tSpan, x, y };
+  panel.geom = {
+    margin,
+    plotW,
+    width,
+    t0,
+    tSpan,
+    x,
+    y
+  };
 }
 
-// ---------- наведение курсора ----------
+// ======================================================
+// НАВЕДЕНИЕ НА ГРАФИК
+// ======================================================
 
 function hideHover(panel) {
   panel.tooltipEl.style.opacity = "0";
@@ -1336,32 +1570,49 @@ function onChartHover(panel, event) {
   if (!geom || !panel.refs) return;
 
   const rect = panel.chartEl.getBoundingClientRect();
+
   const px = event.clientX - rect.left;
 
-  if (px < geom.margin.left - 6 || px > geom.width - geom.margin.right + 6) {
+  if (
+    px < geom.margin.left - 6 ||
+    px > geom.width - geom.margin.right + 6
+  ) {
     hideHover(panel);
     return;
   }
 
-  const time = geom.t0 + ((px - geom.margin.left) / geom.plotW) * geom.tSpan;
+  const time =
+    geom.t0 +
+    (
+      (px - geom.margin.left) /
+      geom.plotW
+    ) * geom.tSpan;
+
   const points = panel.points;
 
-  // Бинарный поиск ближайшей точки.
   let low = 0;
   let high = points.length - 1;
 
   while (low < high) {
     const mid = (low + high) >> 1;
 
-    if (points[mid].t < time) low = mid + 1;
-    else high = mid;
+    if (points[mid].t < time) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
   }
 
-  if (low > 0 && Math.abs(points[low - 1].t - time) < Math.abs(points[low].t - time)) {
+  if (
+    low > 0 &&
+    Math.abs(points[low - 1].t - time) <
+    Math.abs(points[low].t - time)
+  ) {
     low -= 1;
   }
 
   const point = points[low];
+
   const cx = geom.x(point.t);
   const cy = geom.y(point.v);
 
@@ -1377,26 +1628,28 @@ function onChartHover(panel, event) {
   price.textContent = formatPrice(point.v);
 
   const when = document.createElement("span");
-  when.textContent = fullTimeFormatter.format(new Date(point.t));
+  when.textContent = fullTimeFormatter.format(
+    new Date(point.t)
+  );
 
   panel.tooltipEl.replaceChildren(price, when);
 
-  // Подсказка справа от точки, а у правого края — слева.
   const flip = cx > geom.width * 0.6;
 
   panel.tooltipEl.style.left = `${cx}px`;
   panel.tooltipEl.style.top = "6px";
+
   panel.tooltipEl.style.transform = flip
     ? "translateX(calc(-100% - 12px))"
     : "translateX(12px)";
+
   panel.tooltipEl.style.opacity = "1";
 }
 
 // ======================================================
-// ОТОБРАЖЕНИЕ КАРТОЧЕК
+// КАРТОЧКИ
 // ======================================================
 
-// Удаляем все карточки (при загрузке, поиске, ошибке).
 function clearCards() {
   if (coinsEl) {
     coinsEl.replaceChildren();
@@ -1410,19 +1663,26 @@ function clearCards() {
 function renderCoins(coins) {
   if (!coinsEl) return;
 
-  const validCoins = coins.filter(coin => coin && typeof coin === "object");
+  const validCoins = coins.filter(
+    coin => coin && typeof coin === "object"
+  );
+
   const keys = validCoins.map(getCoinKey);
 
   const sameLayout =
     cardRegistry.size === keys.length &&
     keys.length === renderedKeys.length &&
-    keys.every((key, i) => key === renderedKeys[i]);
+    keys.every(
+      (key, i) => key === renderedKeys[i]
+    );
 
-  // Набор монет не изменился — обновляем карточки на месте.
-  // Так раскрытая карточка и график не закрываются при автообновлении.
   if (sameLayout) {
     validCoins.forEach((coin, i) => {
-      updateCoinCard(cardRegistry.get(keys[i]), coin, i);
+      updateCoinCard(
+        cardRegistry.get(keys[i]),
+        coin,
+        i
+      );
     });
 
     return;
@@ -1443,12 +1703,19 @@ function renderCoins(coins) {
   });
 
   coinsEl.appendChild(fragment);
+
   renderedKeys = keys;
 
-  // Если раскрытая монета осталась в списке — раскрываем её снова.
-  if (previouslyExpanded !== null && cardRegistry.has(previouslyExpanded)) {
+  if (
+    previouslyExpanded !== null &&
+    cardRegistry.has(previouslyExpanded)
+  ) {
     expandedKey = previouslyExpanded;
-    setExpanded(previouslyExpanded, true);
+
+    setExpanded(
+      previouslyExpanded,
+      true
+    );
   } else {
     expandedKey = null;
   }
@@ -1461,7 +1728,7 @@ function showSkeletons() {
 
   const fragment = document.createDocumentFragment();
 
-  for (let index = 0; index < 6; index += 1) {
+  for (let index = 0; index < 6; index++) {
     const skeleton = document.createElement("div");
 
     skeleton.className = "coin-skeleton";
@@ -1489,15 +1756,13 @@ function showEmptyState(query) {
 // ЗАГРУЗКА И ПОИСК
 // ======================================================
 
-// silent = true: фоновое обновление без скелетонов и сообщений.
 async function run({ silent = false } = {}) {
   if (!coinsEl) return;
 
-  // Ручной запуск запоминает запрос из поля поиска.
-  // Фоновое обновление использует последний применённый запрос,
-  // а не то, что пользователь печатает прямо сейчас.
   if (!silent) {
-    activeQuery = searchInput ? searchInput.value.trim() : "";
+    activeQuery = searchInput
+      ? searchInput.value.trim()
+      : "";
   }
 
   const query = activeQuery;
@@ -1529,7 +1794,6 @@ async function run({ silent = false } = {}) {
       data = await getJson("/api/Coin/GetAll");
     }
 
-    // Не показываем результаты устаревшего запроса.
     if (currentRequest !== requestCounter) {
       return;
     }
@@ -1554,14 +1818,21 @@ async function run({ silent = false } = {}) {
       );
     });
 
-    // На главной показываем первые 12 активов.
-    const coins = validCoins.slice(0, COINS_LIMIT);
+    const coins = validCoins.slice(
+      0,
+      COINS_LIMIT
+    );
 
-    // Если данные не изменились, ничего не перерисовываем:
-    // так карточки и картинки не мигают каждые 3 секунды.
-    const signature = JSON.stringify([query, validCoins.length, coins]);
+    const signature = JSON.stringify([
+      query,
+      validCoins.length,
+      coins
+    ]);
 
-    if (silent && signature === lastSignature) {
+    if (
+      silent &&
+      signature === lastSignature
+    ) {
       return;
     }
 
@@ -1575,7 +1846,10 @@ async function run({ silent = false } = {}) {
     renderCoins(coins);
 
     setCoinCount(
-      L.shown(coins.length, validCoins.length)
+      L.shown(
+        coins.length,
+        validCoins.length
+      )
     );
 
     setStatus(
@@ -1583,18 +1857,20 @@ async function run({ silent = false } = {}) {
         ? L.searchResults(coins.length)
         : ""
     );
-  } catch {
+
+  } catch (error) {
     if (currentRequest !== requestCounter) {
       return;
     }
 
-    // При сбое фонового обновления оставляем на экране
-    // последние успешно загруженные данные.
+    console.error("StockPilot API error:", error);
+
     if (silent && lastSignature !== null) {
       return;
     }
 
     lastSignature = null;
+
     clearCards();
 
     setCoinCount(L.unavailable);
@@ -1603,8 +1879,9 @@ async function run({ silent = false } = {}) {
       L.loadFailedLater,
       true
     );
+
   } finally {
-    if (!silent && currentRequest === requestCounter) {
+    if (currentRequest === requestCounter) {
       isManualLoading = false;
       setLoading(false);
     }
@@ -1615,68 +1892,83 @@ async function run({ silent = false } = {}) {
 // АВТООБНОВЛЕНИЕ
 // ======================================================
 
-// Следующий запрос планируется только после завершения предыдущего,
-// поэтому запросы не накладываются друг на друга.
 function scheduleRefresh() {
   clearTimeout(refreshTimer);
 
   refreshTimer = setTimeout(async () => {
-    if (!document.hidden && !isManualLoading) {
-      await run({ silent: true });
+    if (
+      !document.hidden &&
+      !isManualLoading
+    ) {
+      await run({
+        silent: true
+      });
+
       refreshOpenChart();
     }
 
     scheduleRefresh();
+
   }, REFRESH_INTERVAL_MS);
 }
 
-// Вкладка снова стала активной — сразу обновляем данные.
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && !isManualLoading) {
-    run({ silent: true });
-    refreshOpenChart();
-    scheduleRefresh();
-  }
-});
+document.addEventListener(
+  "visibilitychange",
+  () => {
+    if (
+      !document.hidden &&
+      !isManualLoading
+    ) {
+      run({
+        silent: true
+      });
 
-// ======================================================
-// СОБЫТИЯ
-// ======================================================
-
-// Поиск по названию или символу.
-if (searchForm) {
-  searchForm.addEventListener("submit", event => {
-    event.preventDefault();
-    cancelPendingSearch();
-    run();
-    scheduleRefresh();
-  });
-}
-
-// Очистка поисковой строки.
-if (clearSearchButton) {
-  clearSearchButton.addEventListener("click", () => {
-    if (searchInput) {
-      searchInput.value = "";
-      searchInput.focus();
+      refreshOpenChart();
+      scheduleRefresh();
     }
+  }
+);
 
-    clearSearchButton.hidden = true;
-    cancelPendingSearch();
-    run();
-    scheduleRefresh();
-  });
-}
-
-// Поиск при вводе: запускается через небольшую паузу после
-// последнего символа. Кнопка «Найти» и Enter по-прежнему работают
-// и запускают поиск сразу.
-let searchTimer = null;
-let isComposing = false;
+// ======================================================
+// ПОИСК
+// ======================================================
 
 function cancelPendingSearch() {
   clearTimeout(searchTimer);
   searchTimer = null;
+}
+
+if (searchForm) {
+  searchForm.addEventListener(
+    "submit",
+    event => {
+      event.preventDefault();
+
+      cancelPendingSearch();
+
+      run();
+      scheduleRefresh();
+    }
+  );
+}
+
+if (clearSearchButton) {
+  clearSearchButton.addEventListener(
+    "click",
+    () => {
+      if (searchInput) {
+        searchInput.value = "";
+        searchInput.focus();
+      }
+
+      clearSearchButton.hidden = true;
+
+      cancelPendingSearch();
+
+      run();
+      scheduleRefresh();
+    }
+  );
 }
 
 function runLiveSearch() {
@@ -1684,50 +1976,77 @@ function runLiveSearch() {
 
   if (!searchInput) return;
 
-  // Запрос не изменился — повторно не ищем.
-  if (searchInput.value.trim() === activeQuery) return;
+  if (
+    searchInput.value.trim() === activeQuery
+  ) {
+    return;
+  }
 
   run();
   scheduleRefresh();
 }
 
 if (searchInput) {
-  // Не мешаем вводу через IME (китайский, японский и т.п.):
-  // ждём, пока пользователь закончит составлять символ.
-  searchInput.addEventListener("compositionstart", () => {
-    isComposing = true;
-  });
-
-  searchInput.addEventListener("compositionend", () => {
-    isComposing = false;
-    cancelPendingSearch();
-    searchTimer = setTimeout(runLiveSearch, SEARCH_DEBOUNCE_MS);
-  });
-
-  searchInput.addEventListener("input", () => {
-    // Кнопка очистки видна только при введённом тексте.
-    if (clearSearchButton) {
-      clearSearchButton.hidden =
-        searchInput.value.trim().length === 0;
+  searchInput.addEventListener(
+    "compositionstart",
+    () => {
+      isComposing = true;
     }
+  );
 
-    if (isComposing) return;
+  searchInput.addEventListener(
+    "compositionend",
+    () => {
+      isComposing = false;
 
-    cancelPendingSearch();
-    searchTimer = setTimeout(runLiveSearch, SEARCH_DEBOUNCE_MS);
-  });
+      cancelPendingSearch();
+
+      searchTimer = setTimeout(
+        runLiveSearch,
+        SEARCH_DEBOUNCE_MS
+      );
+    }
+  );
+
+  searchInput.addEventListener(
+    "input",
+    () => {
+      if (clearSearchButton) {
+        clearSearchButton.hidden =
+          searchInput.value.trim().length === 0;
+      }
+
+      if (isComposing) return;
+
+      cancelPendingSearch();
+
+      searchTimer = setTimeout(
+        runLiveSearch,
+        SEARCH_DEBOUNCE_MS
+      );
+    }
+  );
 }
 
-// Escape закрывает раскрытую карточку.
-document.addEventListener("keydown", event => {
-  if (event.key === "Escape") {
-    collapseExpanded();
+// ======================================================
+// ESCAPE — ЗАКРЫТИЕ ГРАФИКА
+// ======================================================
+
+document.addEventListener(
+  "keydown",
+  event => {
+    if (event.key === "Escape") {
+      collapseExpanded();
+    }
   }
-});
+);
 
 // ======================================================
-// ЗАПУСК
+// ЗАПУСК STOCKPILOT
 // ======================================================
+
+// Сначала загружаем данные.
+// Автообновление запускается отдельно.
 
 run();
 scheduleRefresh();
