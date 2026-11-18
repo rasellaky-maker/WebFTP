@@ -5,7 +5,7 @@
 // STOCKPILOT — НАСТРОЙКИ
 // ======================================================
 
-const API_BASE = "https://stockpilott.runasp.net/";
+const API_BASE = "https://stockpilott.runasp.net"; // без слэша на конце
 const COINS_LIMIT = 12;
 
 // Автоматическое обновление данных.
@@ -320,7 +320,11 @@ function formatBuyers(value) {
 // API — УЛУЧШЕННАЯ ЗАГРУЗКА
 // ======================================================
 
-async function getJson(path, timeoutMs = API_TIMEOUT_MS) {
+async function getJson(
+  path,
+  timeoutMs = API_TIMEOUT_MS,
+  { emptyOn404 = false } = {}
+) {
   const controller = new AbortController();
 
   const timeout = setTimeout(() => {
@@ -328,7 +332,10 @@ async function getJson(path, timeoutMs = API_TIMEOUT_MS) {
   }, timeoutMs);
 
   try {
-    const response = await fetch(`${API_BASE}${path}`, {
+    // Защита от двойного слэша: base без "/" на конце + path без "/" в начале.
+    const url = `${API_BASE.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+
+    const response = await fetch(url, {
       method: "GET",
       cache: "no-store",
       headers: {
@@ -337,7 +344,7 @@ async function getJson(path, timeoutMs = API_TIMEOUT_MS) {
       signal: controller.signal
     });
 
-    if (response.status === 404 || response.status === 204) {
+    if (response.status === 204 || (response.status === 404 && emptyOn404)) {
       return [];
     }
 
@@ -571,7 +578,7 @@ function getImageCandidates(imagePath) {
   try {
     const apiUrl = new URL(
       source,
-      `${API_BASE}/`
+      `${API_BASE.replace(/\/+$/, "")}/`
     ).href;
 
     if (!candidates.includes(apiUrl)) {
@@ -1267,7 +1274,9 @@ async function loadHistory(
 
   try {
     const data = await getJson(
-      `/api/Coin/${encodeURIComponent(coinId)}/history?range=${encodeURIComponent(range)}`
+      `/api/Coin/${encodeURIComponent(coinId)}/history?range=${encodeURIComponent(range)}`,
+      API_TIMEOUT_MS,
+      { emptyOn404: true }
     );
 
     if (
@@ -1788,7 +1797,9 @@ async function run({ silent = false } = {}) {
 
     if (query) {
       data = await getJson(
-        `/api/Coin/search/${encodeURIComponent(query)}`
+        `/api/Coin/search/${encodeURIComponent(query)}`,
+        API_TIMEOUT_MS,
+        { emptyOn404: true }
       );
     } else {
       data = await getJson("/api/Coin/GetAll");
