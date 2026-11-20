@@ -1406,6 +1406,67 @@ function formatAxisPrice(value, span) {
   }).format(value);
 }
 
+function buildCandles(points, count, t0, tSpan) {
+  const bucketMs = tSpan / count;
+  const buckets = new Array(count).fill(null);
+
+  for (const point of points) {
+    let i = Math.floor((point.t - t0) / bucketMs);
+
+    if (i >= count) i = count - 1;
+    if (i < 0) i = 0;
+
+    const candle = buckets[i];
+
+    if (!candle) {
+      buckets[i] = {
+        o: point.v,
+        h: point.v,
+        l: point.v,
+        c: point.v
+      };
+    } else {
+      if (point.v > candle.h) candle.h = point.v;
+      if (point.v < candle.l) candle.l = point.v;
+      candle.c = point.v;
+    }
+  }
+
+  const result = [];
+  let prevClose = null;
+
+  for (let i = 0; i < count; i++) {
+    let candle = buckets[i];
+
+    if (candle) {
+      // Как на бирже: свеча открывается там, где закрылась предыдущая.
+      if (prevClose !== null) {
+        candle.o = prevClose;
+        candle.h = Math.max(candle.h, prevClose);
+        candle.l = Math.min(candle.l, prevClose);
+      }
+    } else if (prevClose !== null) {
+      // Нет сделок за период — плоская свеча.
+      candle = {
+        o: prevClose,
+        h: prevClose,
+        l: prevClose,
+        c: prevClose
+      };
+    } else {
+      continue;
+    }
+
+    candle.i = i;
+    candle.start = t0 + i * bucketMs;
+
+    prevClose = candle.c;
+    result.push(candle);
+  }
+
+  return result;
+}
+
 function drawChart(panel) {
   const width = panel.chartEl.clientWidth;
   const height = panel.chartEl.clientHeight || 240;
@@ -1438,12 +1499,24 @@ function drawChart(panel) {
 
   const tSpan = Math.max(t1 - t0, 1);
 
+  const count = Math.max(
+    12,
+    Math.min(72, Math.floor(plotW / 10))
+  );
+
+  const candles = buildCandles(
+    points,
+    count,
+    t0,
+    tSpan
+  );
+
   let min = Infinity;
   let max = -Infinity;
 
-  for (const point of points) {
-    if (point.v < min) min = point.v;
-    if (point.v > max) max = point.v;
+  for (const candle of candles) {
+    if (candle.l < min) min = candle.l;
+    if (candle.h > max) max = candle.h;
   }
 
   let pad = (max - min) * 0.08;
@@ -1474,17 +1547,7 @@ function drawChart(panel) {
     !isUp
   );
 
-  const linePath = points
-    .map((point, i) =>
-      `${i ? "L" : "M"}${x(point.t).toFixed(1)},${y(point.v).toFixed(1)}`
-    )
-    .join("");
-
   const bottom = margin.top + plotH;
-
-  const areaPath =
-    `${linePath}L${x(t1).toFixed(1)},${bottom}` +
-    `L${x(t0).toFixed(1)},${bottom}Z`;
 
   let grid = "";
 
@@ -1524,28 +1587,47 @@ function drawChart(panel) {
       `${tickFormatter.format(new Date(time))}</text>`;
   }
 
-  const gradId = `history-grad-${panel.uid}`;
+  const slot = plotW / count;
+  const bodyW = Math.max(2, Math.min(slot * 0.68, 14));
+
+  const byIndex = new Array(count).fill(null);
+
+  let body = "";
+
+  for (const candle of candles) {
+    byIndex[candle.i] = candle;
+
+    const cx =
+      Math.round(margin.left + (candle.i + 0.5) * slot) + 0.5;
+
+    const yOpen = y(candle.o);
+    const yClose = y(candle.c);
+    const yHighPx = y(candle.h);
+    const yLowPx = y(candle.l);
+
+    const top = Math.min(yOpen, yClose);
+    const bodyH = Math.max(Math.abs(yOpen - yClose), 1);
+
+    const dir = candle.c >= candle.o ? "up" : "down";
+
+    body +=
+      `<g class="candle candle-${dir}">` +
+      `<line class="candle-wick" x1="${cx}" x2="${cx}" y1="${yHighPx.toFixed(1)}" y2="${yLowPx.toFixed(1)}"/>` +
+      `<rect class="candle-body" x="${(cx - bodyW / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${bodyH.toFixed(1)}"/>` +
+      `</g>`;
+  }
 
   panel.plotEl.innerHTML =
     `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${L.chartLabel}">` +
-    `<defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">` +
-    `<stop offset="0" style="stop-color:var(--trend);stop-opacity:.28"/>` +
-    `<stop offset="1" style="stop-color:var(--trend);stop-opacity:0"/>` +
-    `</linearGradient></defs>` +
     grid +
     ticks +
-    `<path d="${areaPath}" fill="url(#${gradId})"/>` +
-    `<path class="chart-line" d="${linePath}"/>` +
+    body +
     `<line class="chart-cursor" x1="0" x2="0" y1="${margin.top}" y2="${bottom}" style="opacity:0"/>` +
-    `<circle class="chart-dot" r="4" cx="0" cy="0" style="opacity:0"/>` +
     `</svg>`;
 
   panel.refs = {
     cursor: panel.plotEl.querySelector(
       ".chart-cursor"
-    ),
-    dot: panel.plotEl.querySelector(
-      ".chart-dot"
     )
   };
 
@@ -1553,10 +1635,10 @@ function drawChart(panel) {
     margin,
     plotW,
     width,
-    t0,
-    tSpan,
-    x,
-    y
+    slot,
+    count,
+    candles,
+    byIndex
   };
 }
 
@@ -1569,7 +1651,6 @@ function hideHover(panel) {
 
   if (panel.refs) {
     panel.refs.cursor.style.opacity = "0";
-    panel.refs.dot.style.opacity = "0";
   }
 }
 
@@ -1590,58 +1671,54 @@ function onChartHover(panel, event) {
     return;
   }
 
-  const time =
-    geom.t0 +
-    (
-      (px - geom.margin.left) /
-      geom.plotW
-    ) * geom.tSpan;
+  let index = Math.floor(
+    (px - geom.margin.left) / geom.slot
+  );
 
-  const points = panel.points;
+  index = Math.max(0, Math.min(geom.count - 1, index));
 
-  let low = 0;
-  let high = points.length - 1;
+  const candle =
+    geom.byIndex[index] || geom.candles[0];
 
-  while (low < high) {
-    const mid = (low + high) >> 1;
-
-    if (points[mid].t < time) {
-      low = mid + 1;
-    } else {
-      high = mid;
-    }
-  }
-
-  if (
-    low > 0 &&
-    Math.abs(points[low - 1].t - time) <
-    Math.abs(points[low].t - time)
-  ) {
-    low -= 1;
-  }
-
-  const point = points[low];
-
-  const cx = geom.x(point.t);
-  const cy = geom.y(point.v);
+  const cx = Math.round(
+    geom.margin.left + (candle.i + 0.5) * geom.slot
+  ) + 0.5;
 
   panel.refs.cursor.setAttribute("x1", cx);
   panel.refs.cursor.setAttribute("x2", cx);
   panel.refs.cursor.style.opacity = "1";
 
-  panel.refs.dot.setAttribute("cx", cx);
-  panel.refs.dot.setAttribute("cy", cy);
-  panel.refs.dot.style.opacity = "1";
-
-  const price = document.createElement("strong");
-  price.textContent = formatPrice(point.v);
-
   const when = document.createElement("span");
   when.textContent = fullTimeFormatter.format(
-    new Date(point.t)
+    new Date(candle.start)
   );
 
-  panel.tooltipEl.replaceChildren(price, when);
+  const rows = document.createElement("div");
+  rows.className = "candle-ohlc";
+
+  const dir = candle.c >= candle.o ? "is-up" : "is-down";
+
+  [
+    ["O", candle.o],
+    ["H", candle.h],
+    ["L", candle.l],
+    ["C", candle.c]
+  ].forEach(([label, value]) => {
+    const row = document.createElement("div");
+
+    const key = document.createElement("em");
+    key.textContent = label;
+
+    const val = document.createElement("strong");
+    val.textContent = formatPrice(value);
+
+    if (label === "C") val.className = dir;
+
+    row.append(key, val);
+    rows.append(row);
+  });
+
+  panel.tooltipEl.replaceChildren(when, rows);
 
   const flip = cx > geom.width * 0.6;
 

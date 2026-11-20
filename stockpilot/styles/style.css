@@ -140,3 +140,24 @@
 /* Community shortcut for phones (main nav is hidden below 640px) */
 .header-comments{display:none}
 @media(max-width:640px){.header-comments{display:inline-grid;place-items:center;width:36px;height:36px;border:1px solid var(--border);border-radius:11px;background:#0c1118;color:var(--green)}.header-comments:hover{border-color:var(--green)}}
+
+/* ===== Icon instead of the "S" letter ===== */
+.brand-mark{background:none;overflow:hidden}
+.brand-mark img{display:block;width:100%;height:100%}
+.hero-center{border:0;background:none;border-radius:34px;overflow:hidden}
+.hero-center-symbol{display:block;width:100%;height:100%;object-fit:contain;transform:none}
+.start-symbol{display:block;border:0;background:none;border-radius:22px;object-fit:contain}
+
+/* ===== Candlestick chart ===== */
+.candle-wick{stroke-width:1.2}
+.candle-up .candle-wick{stroke:var(--green)}
+.candle-up .candle-body{fill:var(--green);stroke:var(--green)}
+.candle-down .candle-wick{stroke:#f08a7e}
+.candle-down .candle-body{fill:#f08a7e;stroke:#f08a7e}
+.candle-body{stroke-width:1;shape-rendering:crispEdges}
+.history-tooltip .candle-ohlc{margin-top:4px}
+.history-tooltip .candle-ohlc div{display:flex;justify-content:space-between;gap:14px}
+.history-tooltip .candle-ohlc em{color:var(--muted);font-size:10px;font-style:normal}
+.history-tooltip .candle-ohlc strong{display:inline;font-size:11px}
+.history-tooltip .candle-ohlc .is-up{color:var(--green)}
+.history-tooltip .candle-ohlc .is-down{color:#f08a7e}

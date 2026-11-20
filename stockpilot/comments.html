@@ -6,13 +6,18 @@
   <meta name="theme-color" content="#080b10">
   <meta name="description" content="StockPilot — Community — community comments.">
   <title>StockPilot — Community</title>
+
+  <link rel="icon" type="image/svg+xml" href="imgs/stockpilot-icon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="imgs/stockpilot-icon-32.png">
+  <link rel="apple-touch-icon" href="imgs/stockpilot-icon-180.png">
+
   <link rel="stylesheet" href="styles/style.css">
   <script type="module" src="scripts/comments.js"></script>
 </head>
 <body>
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand" href="index.html" aria-label="StockPilot"><span class="brand-mark">S</span><span>Stock<span class="brand-accent">Pilot</span></span></a>
+      <a class="brand" href="index.html" aria-label="StockPilot"><span class="brand-mark"><img src="imgs/stockpilot-icon.svg" alt="" width="36" height="36"></span><span>Stock<span class="brand-accent">Pilot</span></span></a>
       <nav class="main-nav" aria-label="Navigation"><a href="index.html">Home</a><a href="download.html">Download client</a></nav>
       <div class="header-actions"><a class="header-button" href="index.html">Back to market <span>↗</span></a></div>
     </div>
@@ -42,7 +47,7 @@
       </div>
     </div>
   </main>
-  <footer class="site-footer"><div class="container footer-inner"><a class="brand footer-brand" href="index.html"><span class="brand-mark">S</span><span>Stock<span class="brand-accent">Pilot</span></span></a><p>© <span id="currentYear"></span> StockPilot.</p><div class="footer-links"><a class="footer-link" href="index.html">Home ↑</a></div></div></footer>
+  <footer class="site-footer"><div class="container footer-inner"><a class="brand footer-brand" href="index.html"><span class="brand-mark"><img src="imgs/stockpilot-icon.svg" alt="" width="36" height="36"></span><span>Stock<span class="brand-accent">Pilot</span></span></a><p>© <span id="currentYear"></span> StockPilot.</p><div class="footer-links"><a class="footer-link" href="index.html">Home ↑</a></div></div></footer>
   <script>document.getElementById('currentYear').textContent = new Date().getFullYear();</script>
 </body>
 </html>
