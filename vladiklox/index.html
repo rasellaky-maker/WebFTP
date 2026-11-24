@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>vladiklox</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🤡%3C/text%3E%3C/svg%3E">
+<style>
+  :root { --bg:#06110a; --fg:#c9ffd9; --glow:#2cff7a; --warn:#ff4d4d; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; margin:0; background:var(--bg); color:var(--fg);
+    font-family:"Courier New", ui-monospace, monospace; }
+  .screen { position:fixed; inset:0; display:none; flex-direction:column; align-items:center;
+    justify-content:center; gap:1.4rem; padding:1.5rem; text-align:center; }
+  .screen.on { display:flex; }
+  h1 { font-size:clamp(1.6rem, 7vw, 3rem); margin:0; line-height:1.15; max-width:16ch; }
+  button { font:inherit; font-size:1.1rem; padding:.9rem 1.4rem; border-radius:10px; cursor:pointer;
+    border:2px solid var(--glow); background:transparent; color:var(--glow); width:min(100%, 22rem); }
+  button:active { background:var(--glow); color:var(--bg); }
+  button.fool { border-color:var(--warn); color:var(--warn); }
+  button.fool:active { background:var(--warn); color:var(--bg); }
+  button:focus-visible { outline:3px solid #fff; outline-offset:3px; }
+
+  .radar { width:min(70vw, 18rem); aspect-ratio:1; border-radius:50%; position:relative;
+    border:2px solid var(--glow);
+    background:
+      radial-gradient(circle, transparent 0 24%, rgba(44,255,122,.35) 24.5% 25.5%, transparent 26% 49%,
+        rgba(44,255,122,.35) 49.5% 50.5%, transparent 51% 74%, rgba(44,255,122,.35) 74.5% 75.5%, transparent 76%),
+      linear-gradient(var(--glow), var(--glow)) center/1px 100% no-repeat,
+      linear-gradient(var(--glow), var(--glow)) center/100% 1px no-repeat; }
+  .radar::before { content:""; position:absolute; inset:0; border-radius:50%;
+    background:conic-gradient(from 0deg, rgba(44,255,122,.65), rgba(44,255,122,0) 28%, transparent 28%);
+    animation:spin 1.6s linear infinite; }
+  .blip { position:absolute; width:.7rem; height:.7rem; border-radius:50%; background:var(--warn);
+    box-shadow:0 0 10px var(--warn); animation:ping 1.6s ease-out infinite; }
+  .blip:nth-child(1){ top:28%; left:62%; } .blip:nth-child(2){ top:64%; left:30%; animation-delay:.5s; }
+  .blip:nth-child(3){ top:46%; left:74%; animation-delay:1s; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes ping { 0%{ opacity:1; transform:scale(.6);} 100%{ opacity:0; transform:scale(2.2);} }
+
+  #status { font-size:1.2rem; color:var(--glow); min-height:3.6em; max-width:26ch; }
+  #log { font-size:.95rem; color:var(--fg); text-align:left; width:min(100%, 24rem); min-height:6.5em; opacity:.85; }
+  #log div { margin:.15rem 0; }
+  #log .bad { color:var(--warn); }
+  #hacked { background:var(--warn); color:#000; }
+  #hacked h1 { max-width:18ch; font-size:clamp(1.3rem, 6vw, 2rem); }
+  #hackedList { font-size:.85rem; text-align:left; width:min(100%, 26rem); max-height:68vh; overflow-y:auto; }
+  #hackedList div { margin:.2rem 0; }
+  #photo .cap { position:absolute; top:calc(1rem + env(safe-area-inset-top, 0px)); left:0; right:0;
+    font-size:1.5rem; color:#fff; text-shadow:0 0 8px #000, 0 0 3px #000; }
+  #know small { font-size:1.3rem; color:var(--fg); opacity:0; transition:opacity .6s; }
+  #know small.on { opacity:1; }
+  #naming input { font:inherit; font-size:1.2rem; width:min(100%, 22rem); padding:.9rem 1rem; border-radius:10px;
+    border:2px solid var(--glow); background:#000; color:var(--fg); text-align:center; }
+  #naming input:focus-visible { outline:3px solid #fff; outline-offset:3px; }
+  #naming small { color:var(--fg); opacity:.7; max-width:28ch; }
+  #nameMsg { color:var(--warn); min-height:2.6em; max-width:26ch; }
+  #nameVerdict { color:var(--glow); font-size:1.3rem; max-width:24ch; min-height:6em; }
+  @keyframes shake { 25%{transform:translateX(-8px);} 75%{transform:translateX(8px);} }
+  .shake { animation:shake .3s 2; }
+  #bar { width:min(100%, 24rem); height:.7rem; border:1px solid var(--glow); border-radius:6px; overflow:hidden; }
+  #barFill { height:100%; width:0; background:var(--glow); }
+  #pct { font-size:.95rem; color:var(--glow); }
+  #count { font-size:clamp(4rem, 22vw, 7rem); color:var(--warn); line-height:1; min-height:1em; }
+
+  #photo { padding:0; background:#000; }
+  #photo img { width:100%; height:100%; object-fit:contain; }
+  #photo .next { position:absolute; bottom:calc(1.2rem + env(safe-area-inset-bottom, 0px)); left:50%;
+    transform:translateX(-50%); display:none; background:rgba(0,0,0,.7); }
+  #photo .next.on { display:block; }
+  #photo .missing { display:none; font-size:1.4rem; }
+
+  #know { background:#000; }
+  #know p { font-size:clamp(3rem, 18vw, 8rem); margin:0; color:var(--warn); }
+
+  @media (prefers-reduced-motion: reduce) { .radar::before, .blip { animation-duration:6s; } }
+</style>
+</head>
+<body>
+
+<section id="start" class="screen on">
+  <h1>посмотри на название сайта</h1>
+  <button id="btnName">задать свое название сайта</button>
+  <button id="btnLoh" class="fool">я лох</button>
+</section>
+
+<section id="naming" class="screen">
+  <h1>придумай название сайта</h1>
+  <input id="nameInput" type="text" maxlength="30" placeholder="вводи сюда" autocomplete="off">
+  <div id="nameMsg"></div>
+  <button id="nameOk">подтвердить</button>
+  <small>можно любое. всё равно не поможет</small>
+</section>
+
+<section id="verdict" class="screen">
+  <div id="nameVerdict"></div>
+</section>
+
+<section id="scan" class="screen">
+  <div class="radar" aria-hidden="true"><span class="blip"></span><span class="blip"></span><span class="blip"></span></div>
+  <div id="status"></div>
+  <div id="bar" aria-hidden="true"><div id="barFill"></div></div>
+  <div id="pct"></div>
+  <div id="count"></div>
+  <div id="log" aria-hidden="true"></div>
+</section>
+
+<section id="hacked" class="screen"><h1 id="hackedTitle"></h1><div id="hackedList"></div></section>
+
+<section id="photo" class="screen">
+  <img id="img" src="img1.jpg" alt="">
+  <div class="cap">вот и результат, лошара. с днём рождения!</div>
+  <p class="missing" id="missing">положи свою картинку рядом с index.html и назови ее img1.jpg</p>
+  <button class="next" id="next" href="../vlattistthebest/index.html">перейти на настоящий сайт</button>
+</section>  
+
+<section id="know" class="screen"><p>я знаю</p><small id="knowSmall">и ты тоже знаешь</small></section>
+
+<script>
+  // Ссылка на настоящий сайт для друга. Поменяй на свою.
+  const REAL_URL = "https://rasellaky-maker.github.io/vlattistthebest/index.html";
+  const $ = id => document.getElementById(id);
+  const show = id => document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id));
+
+  $("btnLoh").onclick = () => {
+    show("know");
+    setTimeout(() => $("knowSmall").classList.add("on"), 2500);
+    try { document.documentElement.requestFullscreen(); } catch (e) {}
+  };
+
+  const LINES = [
+    ["поиск мозга... не найден", 1],
+    ["проверка айкью... ошибка: число слишком маленькое", 1],
+    ["друзей лучше меня: 0 из 0", 0],
+    ["галерея: 4000 мемов и ни одной умной мысли", 0],
+    ["история браузера: лучше не открывать", 1],
+    ["кнопка «я лох» уже нажималась ранее", 1],
+    ["уровень лошизма: 99%", 1],
+    ["остальные 1% это шанс что ты нажмёшь не туда", 0],
+    ["проверка силы воли... файл не найден", 1],
+    ["поиск здравого смысла... сервер не отвечает", 1],
+    ["обнаружено: 37 незакрытых вкладок и ноль планов", 0],
+    ["анализ шуток... все из 2014 года", 0],
+    ["поиск секретов... он их рассказал всем сам", 1],
+    ["заряд мозга: 1%, подключите зарядку", 1],
+    ["вирус лошизма найден, лечение не предусмотрено", 1],
+    ["почти готово... держись, лох", 0]
+  ];
+  const INTRO_MS = 14000;
+  let logTimer;
+  function startLog() {
+    const box = $("log"); box.innerHTML = ""; let i = 0;
+    const t0 = Date.now();
+    const pt = setInterval(() => {
+      const p = Math.min(99, Math.floor((Date.now() - t0) / INTRO_MS * 100));
+      $("barFill").style.width = p + "%"; $("pct").textContent = "сканирование " + p + "%";
+    }, 100);
+    setTimeout(() => { clearInterval(pt); $("bar").style.display = "none"; $("pct").textContent = ""; }, INTRO_MS);
+    logTimer = setInterval(() => {
+      const [txt, bad] = LINES[i % LINES.length]; i++;
+      const d = document.createElement("div");
+      d.textContent = "> " + txt; if (bad) d.className = "bad";
+      box.appendChild(d);
+      while (box.children.length > 5) box.removeChild(box.firstChild);
+    }, 1800);
+  }
+
+  const esc = t => t.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const REASONS = [
+    "слишком умное для этого сайта",
+    "это название уже занял человек умнее тебя",
+    "звучит как название сайта, а не как лох",
+    "сервер прочитал его вслух и рассмеялся"
+  ];
+  const EMPTY = ["пусто? мозг тоже пустой?", "ещё раз пусто. ну придумай хоть что-нибудь", "ладно, я сам тебе придумаю: «я лох»"];
+  let emptyTries = 0, named = false;
+
+  $("btnName").onclick = () => {
+    show("naming");
+    setTimeout(() => $("nameInput").focus(), 100);
+  };
+  $("nameInput").addEventListener("keydown", e => { if (e.key === "Enter") $("nameOk").click(); });
+  $("nameOk").onclick = () => {
+    if (named) return;
+    let v = $("nameInput").value.trim();
+    if (!v) {
+      $("nameMsg").textContent = EMPTY[Math.min(emptyTries, 2)];
+      $("nameInput").classList.remove("shake"); void $("nameInput").offsetWidth; $("nameInput").classList.add("shake");
+      emptyTries++;
+      if (emptyTries < 3) return;
+      v = "я лох"; $("nameInput").value = v;
+    }
+    named = true;
+    nameSequence(v);
+  };
+
+  function nameSequence(v) {
+    const say = t => { $("nameVerdict").textContent = t; };
+    show("verdict");
+    say("проверка названия «" + v + "»...");
+    setTimeout(() => say("название «" + v + "» отклонено: " + REASONS[Math.floor(Math.random() * REASONS.length)]), 3000);
+    setTimeout(() => say("назначено автоматически: vladiklox. ты его заслужил"), 8500);
+    setTimeout(() => {
+      document.title = "vladiklox";
+      LINES.unshift(["название «" + v + "» не прошло проверку на адекватность", 1]);
+      startScan();
+    }, 13500);
+  }
+
+  function startScan() {
+    show("scan"); startLog();
+    $("bar").style.display = "block"; $("barFill").style.width = "0";
+    $("count").textContent = "";
+    $("status").textContent = "началось сканирование телефона...";
+    setTimeout(() => {
+      $("status").textContent = "быстрее поверните телефон в горизонтальное положение и заблокируйте переворот экрана";
+      let n = 8;
+      $("count").textContent = n;
+      const t = setInterval(() => {
+        n--;
+        if (navigator.vibrate) navigator.vibrate(80);
+        if (n <= 0) { clearInterval(t); reveal(); return; }
+        $("count").textContent = n;
+      }, 1000);
+    }, INTRO_MS);
+  };
+
+  function reveal() {
+    clearInterval(logTimer);
+    $("hackedTitle").textContent = "скан завершён. найдено ошибок: " + LINES.length;
+    $("hackedList").innerHTML = LINES.map(l => "<div>! " + esc(l[0]) + "</div>").join("");
+    show("hacked");
+    if (navigator.vibrate) navigator.vibrate([200, 100, 400]);
+    setTimeout(() => {
+      show("photo");
+      setTimeout(() => $("next").classList.add("on"), 4000);
+    }, 9000);
+  }
+  $("next").onclick = () => { location.href = REAL_URL; };
+  $("img").onerror = () => { $("img").style.display = "none"; $("missing").style.display = "block"; };
+</script>
+</body>
+</html>

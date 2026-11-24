@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>С днём рождения!</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⚓%3C/text%3E%3C/svg%3E">
+<style>
+  :root { --night:#0a1f3d; --sea:#12597d; --deep:#0d4059; --foam:#e8f4f2; --sand:#f1e3c3;
+          --ink:#33291a; --coral:#d9483b; --brass:#d1a84a; }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; color:var(--foam); line-height:1.55;
+    background:linear-gradient(var(--sea), var(--deep) 60%, var(--night));
+    font-family:"Trebuchet MS", "Segoe UI", system-ui, sans-serif; }
+  canvas { position:fixed; inset:0; pointer-events:none; z-index:5; }
+  h1, h2 { font-family:"Palatino Linotype", Palatino, Georgia, serif; font-weight:700; margin:0; line-height:1.05; }
+
+  /* волны */
+  .waves { position:absolute; left:0; right:0; bottom:-1px; height:5.5rem; overflow:hidden; }
+  .wave { position:absolute; left:0; right:0; bottom:0; height:100%; background-repeat:repeat-x; background-size:240px 100%; }
+  .w1 { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40' preserveAspectRatio='none'%3E%3Cpath d='M0 20 Q30 0 60 20 T120 20 V40 H0Z' fill='%2312597d' fill-opacity='.55'/%3E%3C/svg%3E");
+    animation:drift 9s linear infinite; }
+  .w2 { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40' preserveAspectRatio='none'%3E%3Cpath d='M0 24 Q30 6 60 24 T120 24 V40 H0Z' fill='%2312597d'/%3E%3C/svg%3E");
+    animation:drift 6s linear infinite reverse; height:75%; }
+  @keyframes drift { to { background-position-x:240px; } }
+
+  /* первый экран */
+  .hero { position:relative; min-height:100svh; display:flex; flex-direction:column; justify-content:center;
+    gap:1.4rem; padding:calc(2rem + env(safe-area-inset-top, 0px)) 1.5rem 7rem;
+    background:linear-gradient(var(--night), var(--sea)); }
+  .hero-in { max-width:42rem; margin:0 auto; width:100%; }
+  .hero .small { font-size:1.25rem; color:var(--brass); font-family:Georgia, serif; font-style:italic; }
+  .hero h1 { font-size:clamp(3.2rem, 16vw, 7rem); margin:.4rem 0 1.2rem; color:var(--foam); }
+  .hero p { font-size:1.2rem; max-width:26ch; margin:0 0 1.6rem; }
+  .btn { display:inline-block; color:var(--night); background:var(--brass); text-decoration:none; font-weight:700;
+    padding:.9rem 1.6rem; border-radius:.5rem; border:3px double var(--night); }
+  .anchor { position:absolute; top:calc(1.2rem + env(safe-area-inset-top, 0px)); right:1.4rem; font-size:2.6rem;
+    animation:bob 4s ease-in-out infinite; }
+  @keyframes bob { 50% { transform:translateY(.5rem) rotate(8deg); } }
+
+  section.page { max-width:42rem; margin:0 auto; padding:3.5rem 1.4rem; }
+  h2 { font-size:clamp(1.9rem, 8vw, 2.8rem); color:var(--brass); margin-bottom:1.4rem; }
+
+  /* пергамент */
+  .card { background:var(--sand); color:var(--ink); border-radius:.6rem; padding:1.2rem 1.3rem; margin:0 0 1.1rem;
+    border:3px solid var(--brass); outline:2px dashed rgba(51,41,26,.45); outline-offset:-9px;
+    box-shadow:0 6px 0 rgba(0,0,0,.25); }
+  .card .tag { font-family:Georgia, serif; font-style:italic; color:var(--coral); font-size:.95rem; display:block; margin-bottom:.2rem; }
+  .card p { margin:0; font-size:1.15rem; }
+
+  .telegram { background:var(--foam); color:var(--night); border-left:10px solid var(--coral); border-radius:.4rem;
+    padding:1.2rem 1.3rem; font-family:"Courier New", monospace; }
+  .telegram p { margin:.45rem 0; }
+  .telegram b { color:var(--coral); }
+
+  /* награды */
+  .medals { list-style:none; margin:0; padding:0; }
+  .medals li { display:flex; gap:.9rem; align-items:center; padding:.8rem 0; border-bottom:1px solid rgba(232,244,242,.25); font-size:1.1rem; }
+  .medal { flex:none; width:2.6rem; height:2.6rem; border-radius:50%; display:grid; place-items:center;
+    background:radial-gradient(circle at 35% 30%, #f3d98a, var(--brass)); border:3px solid #8e6d1f; font-size:1.2rem; }
+
+  /* сундук */
+  .gift { text-align:center; }
+  .chest { font:inherit; font-size:1.2rem; font-weight:700; color:var(--night); background:var(--brass); cursor:pointer;
+    border:3px double var(--night); border-radius:.5rem; padding:1.1rem 1.8rem; }
+  .chest:active { transform:scale(.96); }
+  #giftText { display:none; margin-top:1.6rem; text-align:left; }
+  #giftText.on { display:block; }
+  .btn:focus-visible, .chest:focus-visible { outline:3px solid var(--foam); outline-offset:3px; }
+
+  footer { position:relative; text-align:center; padding:3rem 1.2rem calc(3rem + env(safe-area-inset-bottom, 0px));
+    font-family:Georgia, serif; font-style:italic; font-size:1.2rem; }
+  .stripes { height:.9rem; background:repeating-linear-gradient(90deg, var(--foam) 0 1.5rem, var(--coral) 1.5rem 3rem); }
+
+
+  /* висящие фото */
+  .ropes { display:grid; grid-template-columns:1fr 1fr; gap:1.6rem 1rem; }
+  .hang { position:relative; margin:0; padding-top:1.6rem; }
+  .hang::before { content:""; position:absolute; top:.5rem; left:-.5rem; right:-.5rem; height:4px; border-radius:2px;
+    background:repeating-linear-gradient(90deg, var(--brass) 0 6px, #8e6d1f 6px 9px); }
+  .pic { position:relative; transform-origin:50% 0; animation:sway 5s ease-in-out infinite;
+    background:var(--sand); padding:.5rem .5rem 1.8rem; border-radius:.2rem; box-shadow:0 6px 0 rgba(0,0,0,.28); }
+  .pic::before { content:""; position:absolute; top:-1rem; left:50%; width:.9rem; height:1.6rem; margin-left:-.45rem;
+    background:var(--coral); border-radius:.2rem; box-shadow:0 2px 0 rgba(0,0,0,.3); }
+  .hang:nth-child(2) .pic { animation-delay:-1.2s; animation-duration:6s; }
+  .hang:nth-child(3) .pic { animation-delay:-2.4s; animation-duration:5.5s; }
+  .hang:nth-child(4) .pic { animation-delay:-3.6s; animation-duration:6.5s; }
+  .frame { position:relative; aspect-ratio:4/5; background:var(--deep); overflow:hidden; }
+  .frame .ph { position:absolute; inset:0; display:grid; place-items:center; color:var(--brass); font-family:Georgia, serif; font-style:italic; }
+  .frame img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .pic figcaption { position:absolute; left:0; right:0; bottom:.4rem; text-align:center; color:var(--ink); font-family:Georgia, serif; font-style:italic; font-size:.9rem; }
+  @keyframes sway { 0%,100% { transform:rotate(-3deg); } 50% { transform:rotate(3deg); } }
+
+  @media (min-width:64rem) {
+    section.photos { padding:0; }
+    section.photos h2 { display:none; }
+    .ropes { display:block; }
+    .hang { position:fixed; top:0; z-index:2; width:6.5rem; padding-top:var(--drop); }
+    .hang::before { top:0; left:50%; right:auto; width:3px; height:var(--drop); margin-left:-1.5px;
+      background:repeating-linear-gradient(var(--brass) 0 6px, #8e6d1f 6px 9px); }
+    .pic { padding:.35rem .35rem 1.4rem; }
+    .pic figcaption { font-size:.75rem; bottom:.3rem; }
+    .hang:nth-child(1) { left:1vw;  --drop:9vh; }
+    .hang:nth-child(2) { right:1vw; --drop:24vh; }
+    .hang:nth-child(3) { left:calc(1vw + 3.6rem); --drop:46vh; }
+    .hang:nth-child(4) { right:calc(1vw + 3.6rem); --drop:62vh; }
+  }
+
+  @media (prefers-reduced-motion: reduce) { .wave, .anchor, .pic { animation:none; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<header class="hero">
+  <div class="anchor" aria-hidden="true">⚓</div>
+  <div class="hero-in">
+    <span class="small">Капитан, сегодня твой день</span>
+    <h1>С днём рождения, <span class="name">Влад</span>!</h1>
+    <p>Эта страница сделана только для тебя. Поднимай якорь и листай вниз.</p>
+    <a class="btn" href="#wishes">поднять паруса</a>
+  </div>
+  <div class="waves" aria-hidden="true"><div class="wave w1"></div><div class="wave w2"></div></div>
+</header>
+
+<section class="page" id="wishes">
+  <h2>Судовой журнал: пожелания</h2>
+  <div class="card"><span class="tag">Запись №1</span><p>Чтобы все планы получались с первого раза, а не с десятого.</p></div>
+  <div class="card"><span class="tag">Запись №2</span><p>Чтобы деньги приходили быстрее, чем уходят.</p></div>
+  <div class="card"><span class="tag">Запись №3</span><p>Чтобы рядом всегда были люди, с которыми не скучно и не страшно.</p></div>
+  <div class="card"><span class="tag">Запись №4</span><p>Чтобы ты каждый год становился сильнее, умнее и смешнее.</p></div>
+  <div class="card"><span class="tag">Запись №5</span><p>И чтобы никакой сканер больше не говорил тебе то, что он сказал сегодня.</p></div>
+</section>
+
+<section class="page">
+  <h2>Радиограмма от сканера</h2>
+  <div class="telegram">
+    <p>Первая проверка: уровень лошизма 99%.</p>
+    <p>Вторая проверка: найдена ошибка в самом сканере.</p>
+    <p><b>Итог: сканер сломан, а ты нормальный человек.</b> Просто я не мог упустить шанс тебя разыграть.</p>
+  </div>
+</section>
+
+<section class="page">
+  <h2>Награды за плавание</h2>
+  <ul class="medals">
+    <li><span class="medal" aria-hidden="true">★</span>Пережил ещё один год и остался собой</li>
+    <li><span class="medal" aria-hidden="true">★</span>Нажал на кнопку, которую нажимать не стоило</li>
+    <li><span class="medal" aria-hidden="true">★</span>Досмотрел этот сайт до конца</li>
+  </ul>
+</section>
+
+<section class="page photos">
+  <h2>Память о плавании</h2>
+  <div class="ropes">
+    <figure class="hang"><div class="pic"><div class="frame"><span class="ph">фото 1</span><img src="photo1.jpg" alt="" onerror="this.style.display='none'"></div><figcaption>фото 1</figcaption></div></figure>
+    <figure class="hang"><div class="pic"><div class="frame"><span class="ph">фото 2</span><img src="photo2.jpg" alt="" onerror="this.style.display='none'"></div><figcaption>фото 2</figcaption></div></figure>
+    <figure class="hang"><div class="pic"><div class="frame"><span class="ph">фото 3</span><img src="photo3.jpg" alt="" onerror="this.style.display='none'"></div><figcaption>фото 3</figcaption></div></figure>
+    <figure class="hang"><div class="pic"><div class="frame"><span class="ph">фото 4</span><img src="photo4.jpg" alt="" onerror="this.style.display='none'"></div><figcaption>фото 4</figcaption></div></figure>
+  </div>
+</section>
+
+<section class="page gift">
+  <h2>Сундук с сокровищами</h2>
+  <button class="chest" id="giftBtn">открыть сундук</button>
+  <div id="giftText" class="card"><p>Здесь будет твой главный подарок или тёплые слова лично от меня.</p></div>
+</section>
+
+<div class="stripes" aria-hidden="true"></div>
+<footer>Попутного ветра! От <span class="from">твоего друга</span>, с любовью и подколами</footer>
+
+<script>
+  // Меняй под себя:
+  const NAME = "Влад";
+  const FROM = "твоего друга";
+  document.querySelectorAll(".name").forEach(e => e.textContent = NAME);
+  document.querySelectorAll(".from").forEach(e => e.textContent = FROM);
+  document.title = "С днём рождения, " + NAME + "!";
+
+  // Конфетти и пузыри
+  const cv = document.getElementById("c"), cx = cv.getContext("2d");
+  let W, H, bits = [];
+  const COLORS = ["#d1a84a", "#d9483b", "#e8f4f2", "#5fd0c8"];
+  function size() { W = cv.width = innerWidth; H = cv.height = innerHeight; }
+  addEventListener("resize", size); size();
+  function burst(n) {
+    for (let i = 0; i < n; i++) bits.push({
+      x: Math.random() * W, y: -10 - Math.random() * H * .4,
+      vx: (Math.random() - .5) * 2, vy: 2 + Math.random() * 3,
+      r: 4 + Math.random() * 5, a: Math.random() * 6, c: COLORS[i % COLORS.length] });
+  }
+  (function tick() {
+    cx.clearRect(0, 0, W, H);
+    bits.forEach(b => { b.x += b.vx; b.y += b.vy; b.a += .1;
+      cx.save(); cx.translate(b.x, b.y); cx.rotate(b.a); cx.fillStyle = b.c;
+      cx.fillRect(-b.r, -b.r / 2, b.r * 2, b.r); cx.restore(); });
+    bits = bits.filter(b => b.y < H + 20);
+    requestAnimationFrame(tick);
+  })();
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) burst(110);
+
+  document.getElementById("giftBtn").onclick = () => {
+    document.getElementById("giftText").classList.add("on");
+    burst(200);
+    if (navigator.vibrate) navigator.vibrate([100, 60, 100]);
+  };
+</script>
+</body>
+</html>
